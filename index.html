@@ -1,0 +1,2134 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Agente Visual — Sistema de monitoreo cognitivo</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@latest/tabler-icons.min.css">
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.7/dist/chart.umd.min.js"></script>
+<style>
+:root {
+  --bg-primary: #080810;
+  --bg-secondary: #0E0E1C;
+  --bg-tertiary: #161628;
+  --bg-column: #0A0A14;
+  --border: rgba(0, 180, 216, 0.15);
+  --border-active: rgba(0, 180, 216, 0.35);
+  --text-primary: #F0F0F8;
+  --text-secondary: #8888AA;
+  --text-tertiary: #44445A;
+  --text-muted: #444466;
+  --text-dim: #C0C0D8;
+  --accent-primary: #00B4D8;
+  --accent-primary-hover: #0096C7;
+  --accent-primary-bg: rgba(0, 180, 216, 0.08);
+  --accent-secondary: #F59E0B;
+  --accent-safe: #1D9E75;
+  --accent-info: #3B82F6;
+  --accent-critical: #DC2626;
+  --accent-profile: #00B4D8;
+  --radius: 10px;
+  --radius-sm: 8px;
+  --radius-pill: 99px;
+  --transition-base: 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  --transition-slow: 0.4s;
+  --shadow-card: 0 1px 3px rgba(0,0,0,0.3);
+  --shadow-card-hover: 0 4px 16px rgba(0, 180, 216, 0.06);
+  --shadow-focus: 0 0 0 2px rgba(0, 180, 216, 0.3);
+  --font-mono: 'SF Mono', 'Fira Code', Consolas, monospace;
+}
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+html, body { height: 100%; overflow: hidden; }
+body {
+  font-family: system-ui, -apple-system, sans-serif;
+  background: var(--bg-primary);
+  color: var(--text-primary);
+  font-size: 13px;
+  line-height: 1.5;
+  -webkit-font-smoothing: antialiased;
+}
+input, select, textarea, button { font: inherit; color: inherit; }
+a { color: var(--accent-primary); text-decoration: none; transition: var(--transition-base); }
+a:hover { color: var(--accent-primary-hover); }
+::-webkit-scrollbar { width: 5px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: var(--text-tertiary); border-radius: 3px; }
+
+/* === SETUP SCREEN === */
+#setup-screen {
+  display: flex; align-items: center; justify-content: center;
+  height: 100vh; padding: 24px;
+}
+.setup-container {
+  width: 100%; max-width: 560px;
+  max-height: 100vh;
+  display: flex; flex-direction: column;
+  padding: 24px 0;
+}
+.setup-header { flex-shrink: 0; text-align: center; margin-bottom: 32px; }
+.setup-header h1 {
+  font-size: 22px; font-weight: 600; color: var(--text-primary);
+  letter-spacing: -0.3px;
+}
+.setup-header h1 span { color: var(--accent-primary); }
+.setup-header p {
+  font-size: 13px; color: var(--text-secondary); margin-top: 8px;
+}
+.setup-form {
+  display: flex; flex-direction: column; gap: 16px;
+  overflow-y: auto; flex: 1; min-height: 0;
+  padding-right: 6px;
+}
+.setup-section {
+  background: var(--bg-secondary);
+  border-radius: var(--radius);
+  border: 0.5px solid var(--border);
+  border-left: 2px solid var(--accent-primary);
+  padding: 20px;
+  display: flex; flex-direction: column; gap: 16px;
+  transition: var(--transition-base);
+}
+.setup-section-title {
+  font-size: 10px; font-weight: 600; color: var(--accent-primary);
+  text-transform: uppercase; letter-spacing: 0.08em;
+  display: flex; align-items: center; gap: 6px;
+}
+.setup-section-title .ti { font-size: 14px; }
+.form-group { display: flex; flex-direction: column; gap: 6px; }
+.form-group label {
+  font-size: 10px; font-weight: 600; color: var(--text-secondary);
+  text-transform: uppercase; letter-spacing: 0.08em;
+}
+.form-group textarea,
+.form-group input,
+.form-group select {
+  background: var(--bg-tertiary);
+  border: 0.5px solid var(--border);
+  border-radius: var(--radius-sm);
+  padding: 10px 14px;
+  font-size: 13px; color: var(--text-primary);
+  outline: none;
+  transition: var(--transition-base);
+}
+.form-group textarea:focus,
+.form-group input:focus,
+.form-group select:focus {
+  border-color: var(--accent-primary);
+  box-shadow: var(--shadow-focus);
+}
+.form-group textarea { resize: vertical; min-height: 56px; font-family: inherit; }
+.form-group select { cursor: pointer; appearance: auto; }
+.form-group input[type="password"] { font-family: inherit; }
+.form-group option { background: var(--bg-tertiary); color: var(--text-primary); }
+.input-with-toggle {
+  position: relative; display: flex; align-items: center;
+}
+.input-with-toggle input { flex: 1; padding-right: 40px; }
+.input-with-toggle .toggle-btn {
+  position: absolute; right: 10px; background: none; border: none;
+  color: var(--text-tertiary); cursor: pointer; padding: 6px;
+  font-size: 18px; display: flex; align-items: center;
+  transition: var(--transition-base);
+}
+.input-with-toggle .toggle-btn:hover { color: var(--text-secondary); }
+.form-row { display: flex; gap: 16px; }
+.form-row .form-group { flex: 1; min-width: 0; }
+input[type="range"] {
+  -webkit-appearance: none; appearance: none;
+  width: 100%; height: 4px;
+  background: var(--bg-tertiary);
+  border-radius: 2px; outline: none; padding: 0; border: none;
+}
+input[type="range"]::-webkit-slider-thumb {
+  -webkit-appearance: none; appearance: none;
+  width: 16px; height: 16px; border-radius: 50%;
+  background: var(--accent-primary);
+  cursor: pointer;
+  margin-top: -6px;
+  box-shadow: 0 0 6px rgba(0, 180, 216, 0.3);
+  transition: var(--transition-base);
+}
+input[type="range"]::-webkit-slider-thumb:hover {
+  box-shadow: 0 0 10px rgba(0, 180, 216, 0.5);
+}
+input[type="range"]::-moz-range-thumb {
+  width: 16px; height: 16px; border-radius: 50%;
+  background: var(--accent-primary); cursor: pointer; border: none;
+}
+input[type="range"]::-moz-range-track {
+  height: 4px; background: var(--bg-tertiary); border-radius: 2px;
+}
+.range-labels {
+  display: flex; justify-content: space-between;
+  font-size: 10px; color: var(--text-tertiary);
+  padding-top: 2px;
+}
+.range-value { font-size: 13px; font-weight: 600; color: var(--accent-primary); }
+.form-group label .range-value { font-size: inherit; }
+.btn {
+  position: relative; overflow: hidden;
+  background: var(--bg-tertiary);
+  border: 0.5px solid var(--border);
+  border-radius: var(--radius-sm);
+  padding: 10px 20px;
+  font-size: 13px; font-weight: 500; cursor: pointer;
+  color: var(--text-primary);
+  transition: var(--transition-base);
+  display: inline-flex; align-items: center; gap: 8px;
+  justify-content: center; z-index: 1;
+}
+.btn::after {
+  content: ''; position: absolute; inset: 0;
+  background: rgba(255,255,255,0.04);
+  transform: scaleY(0); transform-origin: bottom;
+  transition: transform 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+  z-index: -1;
+}
+.btn:hover::after { transform: scaleY(1); }
+.btn:hover {
+  border-color: var(--border-active);
+  box-shadow: 0 0 12px rgba(0, 180, 216, 0.1);
+}
+.btn-primary {
+  background: var(--accent-primary); border-color: var(--accent-primary);
+  color: #fff; height: 48px; font-size: 14px; font-weight: 600;
+}
+.btn-primary::after { background: var(--accent-primary-hover); }
+.btn-primary:hover {
+  background: var(--accent-primary-hover);
+  border-color: var(--accent-primary-hover);
+}
+.btn-primary:disabled {
+  opacity: 0.4; cursor: not-allowed;
+  background: var(--accent-primary); border-color: var(--accent-primary);
+  box-shadow: none;
+}
+.btn-primary:disabled::after { display: none; }
+.btn-primary:disabled:hover { background: var(--accent-primary); border-color: var(--accent-primary); }
+.btn-outline {
+  background: transparent; border-color: var(--border);
+}
+.btn-outline:hover { border-color: var(--border-active); }
+.btn-sm { padding: 6px 12px; font-size: 11px; }
+.btn-icon {
+  padding: 6px; border: none; background: none; cursor: pointer;
+  color: var(--text-tertiary); transition: var(--transition-base);
+  display: inline-flex; align-items: center;
+}
+.btn-icon:hover { color: var(--text-secondary); }
+
+.mode-selector { display: flex; flex-direction: column; gap: 8px; }
+.mode-option {
+  height: 64px; padding: 14px 16px;
+  display: flex; align-items: flex-start; gap: 12px;
+  background: var(--bg-tertiary);
+  border: 0.5px solid var(--border);
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  transition: var(--transition-base);
+}
+.mode-option:hover { border-color: var(--border-active); }
+.mode-option.active {
+  background: var(--accent-primary-bg);
+  border-color: rgba(0, 180, 216, 0.4);
+}
+.mode-option input { display: none; }
+.mode-option .ti {
+  font-size: 20px; color: var(--text-tertiary);
+  flex-shrink: 0; margin-top: 1px;
+  transition: var(--transition-base);
+}
+.mode-option.active .ti { color: var(--accent-primary); }
+.mode-option-title { font-size: 13px; font-weight: 600; color: var(--text-primary); line-height: 1.3; }
+.mode-desc { font-size: 11px; color: var(--text-secondary); margin-top: 2px; line-height: 1.3; }
+
+/* === DASHBOARD === */
+#dashboard-screen { display: none; height: 100vh; flex-direction: column; }
+#dashboard-screen.active { display: flex; }
+
+
+/* Topbar — fixed 48px, no backdrop-filter, no sticky */
+#topbar {
+  display: flex; align-items: center; gap: 8px;
+  padding: 0 16px;
+  background: #0A0A14;
+  border-bottom: 0.5px solid #1A1A28;
+  height: 48px;
+  position: fixed; top: 0; left: 0; right: 0; z-index: 1000;
+}
+.topbar-logo { font-size: 13px; font-weight: 600; white-space: nowrap; color: var(--accent-profile); }
+.pill {
+  display: inline-flex; align-items: center; gap: 6px;
+  padding: 4px 10px; border-radius: var(--radius-pill);
+  font-size: 11px; font-weight: 500; white-space: nowrap;
+  border: 0.5px solid transparent;
+  transition: background var(--transition-slow), color var(--transition-slow), border-color var(--transition-slow);
+}
+.pill-safe { background: #0D1F18; color: var(--accent-safe); border-color: rgba(29,158,117,0.25); }
+.pill-warning { background: #1F1A10; color: var(--accent-secondary); border-color: rgba(245,158,11,0.25); }
+.pill-critical { background: #1F0F10; color: var(--accent-critical); border-color: rgba(220,38,38,0.25); }
+.pill-info { background: #0D1A1F; color: var(--accent-primary); border-color: rgba(0,180,216,0.25); }
+.pill-muted { background: #111118; color: var(--text-tertiary); border-color: rgba(0,180,216,0.1); }
+.pill-concentration {
+  background: #0D221A; color: #1D9E75;
+  border: 0.5px solid rgba(29,158,117,0.4);
+  font-size: 11px; font-weight: 500; padding: 4px 10px;
+  letter-spacing: 0.02em;
+}
+.pill-concentration.pill-warning { background: #221D10; color: #F59E0B; border-color: rgba(245,158,11,0.4); }
+.pill-concentration.pill-critical {
+  background: #220F10; color: #DC2626;
+  border-color: rgba(220,38,38,0.4);
+  animation: glow-critical-pulse 1.5s ease-in-out infinite;
+}
+.pill-dot { width: 6px; height: 6px; border-radius: 50%; transition: background var(--transition-slow); flex-shrink: 0; }
+.pill-dot-safe { background: var(--accent-safe); }
+.pill-dot-critical { background: var(--accent-critical); }
+.pill-dot-warning { background: var(--accent-secondary); }
+.pill-dot-info { background: var(--accent-primary); }
+.topbar-spacer { flex: 1; }
+.topbar-time {
+  font-size: 13px; color: #00B4D8; letter-spacing: 0.05em;
+  font-variant-numeric: tabular-nums;
+  font-family: var(--font-mono);
+}
+.topbar-end-btn {
+  background: rgba(220,38,38,0.1);
+  border: 0.5px solid rgba(220,38,38,0.5);
+  color: #DC2626;
+  padding: 6px 14px; border-radius: 6px;
+  font-size: 11px; font-weight: 500; cursor: pointer;
+  white-space: nowrap;
+  transition: background 0.2s, border-color 0.2s;
+}
+.topbar-end-btn:hover { background: rgba(220,38,38,0.2); border-color: rgba(220,38,38,0.7); }
+
+/* Main grid */
+#main-grid {
+  display: grid;
+  grid-template-columns: 220px 1fr 260px;
+  flex: 1; min-height: 0;
+  margin-top: 48px;
+  transition: grid-template-columns 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+.grid-col { overflow-y: auto; }
+
+/* Left column */
+#left-col {
+  background: #0A0A14; border-right: 0.5px solid #1A1A28;
+  padding: 14px; display: flex; flex-direction: column; gap: 12px;
+}
+.section-label {
+  font-size: 9px; font-weight: 600; color: var(--text-muted);
+  text-transform: uppercase; letter-spacing: 0.1em;
+  display: flex; align-items: center; gap: 4px;
+  margin-bottom: 8px;
+}
+.section-label .ti { font-size: 12px; }
+
+.camera-box {
+  position: relative; width: 100%; aspect-ratio: 4/3;
+  background: #000; border-radius: 8px;
+  overflow: hidden; border: 1px solid #1A1A28;
+  transition: border-color var(--transition-slow), box-shadow var(--transition-slow);
+}
+.camera-box video {
+  width: 100%; height: 100%; object-fit: cover;
+  transform: scaleX(-1); display: none;
+  position: absolute; inset: 0;
+}
+.camera-box .camera-placeholder {
+  display: flex; align-items: center; justify-content: center;
+  width: 100%; height: 100%; color: var(--text-muted); font-size: 11px;
+  position: absolute; inset: 0;
+}
+.camera-overlay {
+  position: absolute; bottom: 0; left: 0; right: 0;
+  background: linear-gradient(transparent, rgba(0,0,0,0.85));
+  padding: 8px 10px; font-size: 11px; font-weight: 600;
+}
+.camera-box.cam-focused {
+  box-shadow: 0 0 0 1px rgba(29,158,117,0.4);
+}
+.camera-box.cam-distracted {
+  border-color: rgba(245,158,11,0.5);
+  box-shadow: 0 0 0 1px rgba(245,158,11,0.3);
+}
+.camera-box.cam-absent,
+.camera-box.cam-fatigued {
+  animation: cam-glow-critical 1.5s ease-in-out infinite;
+}
+
+.metrics-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+.metric-card {
+  background: #0E0E1C;
+  border-radius: 8px;
+  padding: 10px 12px;
+  border: 0.5px solid #1A1A28;
+  border-top: 2px solid #00B4D8;
+  transition: var(--transition-base);
+}
+.metric-card:hover { box-shadow: var(--shadow-card-hover); }
+.metric-card .value {
+  font-size: 22px; font-weight: 600; line-height: 1.2;
+  color: #F0F0F8;
+  font-family: var(--font-mono);
+}
+.metric-card .label {
+  font-size: 9px; color: var(--text-muted);
+  text-transform: uppercase; letter-spacing: 0.05em; margin-top: 2px;
+}
+.metric-card .value-danger { color: #DC2626; }
+.metric-card .value-accent { color: #00B4D8; }
+
+.goal-card {
+  background: #0E0E1C;
+  border-radius: 8px;
+  padding: 12px;
+  border: 0.5px solid #1A1A28;
+}
+.goal-text {
+  font-size: 12px; color: var(--text-dim); line-height: 1.5;
+  display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden;
+}
+.progress-bar {
+  width: 100%; height: 3px; background: #1A1A28;
+  border-radius: 2px; margin-top: 8px; overflow: hidden;
+}
+.progress-bar-fill {
+  height: 100%; border-radius: 2px;
+  background: linear-gradient(90deg, #0096C7, #00B4D8);
+  transition: width 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+}
+.progress-label {
+  font-size: 10px; color: var(--text-muted); margin-top: 4px;
+  display: flex; justify-content: space-between;
+}
+
+.ortho-card {
+  background: #0E0E1C;
+  border-radius: 8px;
+  padding: 10px 12px;
+  border: 0.5px solid #1A1A28;
+  display: flex; align-items: baseline; gap: 6px;
+}
+.ortho-number {
+  font-size: 18px; font-weight: 600; color: #F59E0B;
+  font-family: var(--font-mono);
+  font-variant-numeric: tabular-nums;
+  line-height: 1;
+}
+.ortho-label { font-size: 10px; color: var(--text-muted); }
+
+.countdown-card {
+  background: #0E0E1C;
+  border-radius: 8px;
+  padding: 12px;
+  border: 0.5px solid #1A1A28;
+}
+.countdown-number {
+  font-size: 28px; font-weight: 600; color: #00B4D8;
+  font-variant-numeric: tabular-nums;
+  font-family: var(--font-mono);
+  line-height: 1;
+}
+.countdown-label { font-size: 10px; color: var(--text-muted); margin-bottom: 6px; }
+.countdown-bar {
+  width: 100%; height: 3px; background: #1A1A28;
+  border-radius: 2px; overflow: hidden;
+}
+.countdown-bar-fill {
+  height: 100%; border-radius: 2px; background: #00B4D8;
+  transition: width 1s linear;
+}
+
+.chart-card {
+  background: transparent;
+  border-radius: 6px;
+  height: 60px;
+}
+.chart-card canvas { width: 100% !important; height: 100% !important; }
+
+/* Center column */
+#center-col {
+  background: #080810; display: flex; flex-direction: column;
+}
+.center-header {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 0 16px;
+  height: 44px; flex-shrink: 0;
+  border-bottom: 0.5px solid #1A1A28;
+}
+.center-header h2 { font-size: 13px; font-weight: 600; color: var(--text-primary); letter-spacing: -0.01em; }
+.center-header .count { font-size: 11px; color: var(--text-muted); }
+.feed-container { flex: 1; overflow-y: auto; padding: 0; display: flex; flex-direction: column; gap: 0; }
+.feed-empty {
+  display: flex; flex-direction: column; align-items: center;
+  justify-content: center; height: 100%; color: var(--text-muted);
+  font-size: 12px; text-align: center; gap: 8px;
+}
+.feed-empty .ti { font-size: 32px; color: #222233; }
+.feed-entry {
+  background: #0E0E1C;
+  border-radius: 8px;
+  border: 0.5px solid rgba(255,255,255,0.06);
+  border-left: 2px solid var(--border);
+  padding: 10px 14px;
+  margin: 0 12px 8px;
+  animation: feed-in 0.3s ease-out;
+}
+.feed-entry:first-of-type { margin-top: 12px; }
+.feed-entry:hover { border-color: rgba(255,255,255,0.12); }
+.feed-entry-header { display: flex; align-items: center; gap: 8px; margin-bottom: 4px; }
+.feed-entry-time { font-size: 10px; font-family: var(--font-mono); color: var(--text-muted); white-space: nowrap; }
+.feed-entry-badge { font-size: 9px; font-weight: 600; padding: 2px 7px; border-radius: var(--radius-pill); text-transform: uppercase; letter-spacing: 0.05em; }
+.feed-entry-badge-safe { background: #0D221A; color: #1D9E75; }
+.feed-entry-badge-warning { background: #221D10; color: #F59E0B; }
+.feed-entry-badge-critical { background: #220F10; color: #DC2626; }
+.feed-entry-badge-info { background: #0D1A24; color: #3B82F6; }
+.feed-entry-app { font-size: 10px; color: #6666AA; margin-left: auto; }
+.feed-entry-body { font-size: 12px; color: var(--text-dim); line-height: 1.6; margin-top: 2px; }
+.feed-entry-info { border-left-color: #3B82F6; }
+.feed-entry-safe { border-left-color: #1D9E75; }
+.feed-entry-warning { border-left-color: #F59E0B; }
+.feed-entry-critical { border-left-color: #DC2626; }
+.feed-footer {
+  padding: 8px 16px;
+  border-top: 0.5px solid #1A1A28;
+  font-size: 11px; color: var(--text-muted); flex-shrink: 0;
+  display: flex; align-items: center; gap: 8px;
+}
+.analyzing-spinner {
+  display: inline-block; width: 12px; height: 12px;
+  border: 2px solid var(--border);
+  border-top-color: var(--accent-primary);
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+}
+
+/* Right column */
+#right-col { background: #0A0A14; border-left: 0.5px solid #1A1A28; display: flex; flex-direction: column; }
+.tab-nav {
+  display: flex; border-bottom: 0.5px solid #1A1A28; flex-shrink: 0;
+  height: 40px;
+}
+.tab-btn {
+  position: relative;
+  flex: 1; padding: 0 6px; font-size: 11px; font-weight: 500;
+  color: var(--text-muted); background: none; border: none;
+  cursor: pointer; text-align: center;
+  transition: color 0.2s;
+}
+.tab-btn::after {
+  content: ''; position: absolute; bottom: 0; left: 0; right: 0;
+  height: 2px; background: #00B4D8;
+  opacity: 0; transition: opacity 0.2s;
+}
+.tab-btn:hover { color: var(--text-secondary); }
+.tab-btn.active { color: #00B4D8; }
+.tab-btn.active::after { opacity: 1; }
+.tab-content { flex: 1; overflow-y: auto; display: none; padding: 12px; }
+.tab-content.active { display: flex; flex-direction: column; gap: 8px; }
+.tab-empty { color: var(--text-muted); font-size: 11px; text-align: center; padding: 24px 12px; line-height: 1.5; }
+
+.reminder-item {
+  display: flex; align-items: center; gap: 8px;
+  padding: 10px 12px; background: #0E0E1C;
+  border-radius: 6px;
+  border: 0.5px solid #1A1A28;
+}
+.reminder-item .reminder-text { flex: 1; font-size: 12px; color: var(--text-dim); }
+.reminder-item.done .reminder-text { text-decoration: line-through; color: var(--text-muted); }
+.reminder-item .ti-check-circle { color: #00B4D8; }
+.reminder-input-row { display: flex; gap: 8px; margin-top: auto; padding-top: 10px; }
+.reminder-input-row input {
+  flex: 1; background: #0E0E1C;
+  border: 0.5px solid #1A1A28;
+  border-radius: 6px; padding: 8px 12px; font-size: 12px;
+  color: var(--text-primary); outline: none; transition: border-color 0.2s, box-shadow 0.2s;
+}
+.reminder-input-row input::placeholder { color: var(--text-muted); }
+.reminder-input-row input:focus {
+  border-color: var(--accent-primary);
+  box-shadow: var(--shadow-focus);
+}
+.reminder-input-row .btn-primary {
+  width: 36px; height: 36px; padding: 0; flex-shrink: 0;
+  background: #00B4D8; border: none; border-radius: 6px;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 16px; color: #fff;
+}
+.reminder-input-row .btn-primary::after { display: none; }
+.reminder-input-row .btn-primary:hover { background: #0096C7; }
+
+.app-item {
+  display: flex; flex-direction: column; gap: 4px;
+  padding: 8px 10px; background: #0E0E1C;
+  border-radius: 6px;
+  border: 0.5px solid #1A1A28;
+}
+.app-item-header { display: flex; justify-content: space-between; align-items: center; }
+.app-item-name { font-size: 12px; font-weight: 500; display: flex; align-items: center; gap: 6px; color: var(--text-dim); }
+.app-item-time {
+  font-size: 10px; color: var(--text-muted);
+  font-variant-numeric: tabular-nums;
+  font-family: var(--font-mono);
+}
+.app-bar { height: 2px; background: #1A1A28; border-radius: 2px; overflow: hidden; }
+.app-bar-fill { height: 100%; border-radius: 2px; transition: width 0.5s cubic-bezier(0.4, 0, 0.2, 1); }
+.app-item-active { border-color: rgba(0,180,216,0.3); background: #0D1A24; }
+
+.tip-item {
+  padding: 10px; background: #0E0E1C;
+  border-radius: 6px;
+  border: 0.5px solid #1A1A28;
+}
+.tip-item-header { display: flex; align-items: center; gap: 6px; margin-bottom: 4px; }
+.tip-badge { font-size: 9px; font-weight: 600; padding: 2px 8px; border-radius: var(--radius-pill); text-transform: uppercase; letter-spacing: 0.05em; }
+.tip-badge-new { background: #0D1A1F; color: var(--accent-primary); }
+.tip-badge-efficiency { background: #0D1F18; color: var(--accent-safe); }
+.tip-badge-cognitive { background: #0D1A1F; color: var(--accent-primary); }
+.tip-badge-alert { background: #1F0F10; color: var(--accent-critical); }
+.tip-text { font-size: 11px; color: var(--text-secondary); line-height: 1.5; }
+.tip-time { font-size: 9px; color: var(--text-muted); margin-top: 4px; }
+.tip-filter-row { display: flex; gap: 4px; margin-bottom: 8px; }
+.tip-filter-btn {
+  padding: 4px 10px; font-size: 9px; font-weight: 500; border-radius: var(--radius-pill);
+  background: #0E0E1C;
+  border: 0.5px solid #1A1A28;
+  color: var(--text-muted); cursor: pointer;
+  transition: var(--transition-base);
+}
+.tip-filter-btn:hover { border-color: var(--border-active); color: var(--text-secondary); }
+.tip-filter-btn.active { border-color: var(--accent-primary); color: var(--accent-primary); background: var(--accent-primary-bg); }
+
+/* === FLOATING NOTIFICATION === */
+#notification-container {
+  position: fixed; bottom: 24px; right: 24px; z-index: 9999;
+  display: flex; flex-direction: column; gap: 10px; pointer-events: none;
+}
+.notification {
+  width: 360px;
+  background: var(--bg-secondary);
+  border-radius: var(--radius);
+  border: 0.5px solid var(--border);
+  border-left: 3px solid var(--border);
+  box-shadow: 0 12px 40px rgba(0,0,0,0.5);
+  padding: 14px; pointer-events: all;
+  animation: notif-in 0.35s cubic-bezier(0.4, 0, 0.2, 1);
+  overflow: hidden;
+}
+.notification.out {
+  animation: notif-out 0.3s ease-in forwards;
+}
+.notif-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 6px; }
+.notif-title { font-size: 11px; font-weight: 600; display: flex; align-items: center; gap: 6px; }
+.notif-level { font-size: 9px; font-weight: 600; padding: 2px 8px; border-radius: 100px; text-transform: uppercase; }
+.notif-close { background: none; border: none; color: var(--text-tertiary); cursor: pointer; padding: 2px; font-size: 16px; transition: var(--transition-base); }
+.notif-close:hover { color: var(--text-secondary); }
+.notif-body { font-size: 12px; color: var(--text-secondary); line-height: 1.5; display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; }
+.notif-timer { height: 2px; background: var(--border); border-radius: 2px; margin-top: 10px; overflow: hidden; }
+.notif-timer-fill { height: 100%; border-radius: 2px; transition: width 0.1s linear; }
+.notif-safe { border-left-color: var(--accent-primary); }
+.notif-warning { border-left-color: var(--accent-secondary); }
+.notif-critical { border-left-color: var(--accent-critical); animation: notif-critical-pulse 1.2s ease-in-out infinite; }
+
+/* === SUMMARY MODAL === */
+.modal-overlay {
+  display: none; position: fixed; inset: 0; z-index: 10000;
+  background: rgba(0,0,0,0.7); align-items: center; justify-content: center;
+}
+.modal-overlay.active { display: flex; }
+.modal {
+  background: var(--bg-secondary);
+  border: 0.5px solid var(--border);
+  border-radius: var(--radius);
+  width: 480px; max-width: 90vw;
+  max-height: 80vh; overflow-y: auto; padding: 28px;
+  box-shadow: 0 20px 60px rgba(0,0,0,0.5);
+  animation: modal-in 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+.modal h2 { font-size: 16px; font-weight: 600; margin-bottom: 20px; }
+.modal-stat-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 24px; }
+.modal-stat {
+  background: var(--bg-tertiary);
+  border-radius: var(--radius-sm);
+  padding: 16px;
+  border: 0.5px solid var(--border);
+  text-align: center;
+  border-top: 2px solid var(--accent-primary);
+  transition: var(--transition-base);
+}
+.modal-stat:hover { border-color: var(--border-active); }
+.modal-stat .value {
+  font-size: 24px; font-weight: 600;
+  font-family: 'SF Mono', 'Fira Code', Consolas, monospace;
+}
+.modal-stat .label { font-size: 10px; color: var(--text-tertiary); margin-top: 4px; text-transform: uppercase; letter-spacing: 0.05em; }
+.modal-actions { display: flex; gap: 12px; justify-content: center; }
+
+/* === COMPACT MODE === */
+#main-grid.compact { grid-template-columns: 0 1fr 270px; }
+#main-grid.compact #left-col { overflow: hidden; width: 0; padding: 0; min-width: 0; border: none; opacity: 0; }
+#main-grid.compact .topbar-logo { font-size: 11px; }
+
+/* === KEYFRAMES === */
+@keyframes spin { to { transform: rotate(360deg); } }
+@keyframes feed-in {
+  from { opacity: 0; transform: translateY(6px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+@keyframes notif-in {
+  from { transform: translateY(130%); opacity: 0; }
+  to { transform: translateY(0); opacity: 1; }
+}
+@keyframes notif-out {
+  from { transform: translateY(0); opacity: 1; }
+  to { transform: translateY(130%); opacity: 0; }
+}
+@keyframes glow-critical-pulse {
+  0%, 100% { box-shadow: 0 0 0 rgba(220, 38, 38, 0); }
+  50% { box-shadow: 0 0 12px rgba(220, 38, 38, 0.6); }
+}
+@keyframes notif-critical-pulse {
+  0%, 100% { border-left-color: #DC2626; box-shadow: 0 0 4px rgba(220,38,38,0.3); }
+  50% { border-left-color: rgba(220,38,38,0.5); box-shadow: 0 0 12px rgba(220,38,38,0.5); }
+}
+@keyframes cam-glow-critical {
+  0%, 100% { border-color: rgba(220, 38, 38, 0.4); box-shadow: 0 0 0 rgba(220,38,38,0); }
+  50% { border-color: rgba(220, 38, 38, 0.9); box-shadow: 0 0 0 2px rgba(220,38,38,0.6); }
+}
+@keyframes modal-in {
+  from { opacity: 0; transform: scale(0.95); }
+  to { opacity: 1; transform: scale(1); }
+}
+
+/* === HIDDEN === */
+.hidden { display: none !important; }
+</style>
+</head>
+<body>
+
+<!-- ===== SETUP SCREEN ===== -->
+<div id="setup-screen">
+  <div class="setup-container">
+    <div class="setup-header">
+      <h1>◈ Agente <span>Visual</span></h1>
+      <p>Sistema de monitoreo cognitivo en tiempo real</p>
+    </div>
+    <div class="setup-form">
+      <!-- Section: Session -->
+      <div class="setup-section">
+        <div class="setup-section-title"><i class="ti ti-target"></i> Sesión</div>
+        <div class="form-group">
+          <label for="session-goal">¿Cuál es tu objetivo de esta sesión?</label>
+          <textarea id="session-goal" rows="2" placeholder="Ej: Operar posición EUR/USD en ventana de 09:30-11:00"></textarea>
+        </div>
+        <div class="form-group">
+          <label for="user-profile">Área profesional</label>
+          <select id="user-profile">
+            <option value="">Selecciona tu área</option>
+            <option value="Analista de ciberseguridad">Analista de ciberseguridad</option>
+            <option value="Anestesiólogo">Anestesiólogo</option>
+            <option value="Cirujano">Cirujano</option>
+            <option value="Controlador de tráfico aéreo">Controlador de tráfico aéreo</option>
+            <option value="Day / Night Trader">Day / Night Trader</option>
+            <option value="Dispatcher de emergencias 911">Dispatcher de emergencias 911</option>
+            <option value="Ingeniero de lanzamiento espacial">Ingeniero de lanzamiento espacial</option>
+            <option value="Operador de grúa en construcción de altura">Operador de grúa en construcción de altura</option>
+            <option value="Operador de planta nuclear">Operador de planta nuclear</option>
+            <option value="Operador de sala de control eléctrica">Operador de sala de control eléctrica</option>
+            <option value="Operador de sala de crisis financiera">Operador de sala de crisis financiera</option>
+            <option value="Paramédico / Técnico en emergencias">Paramédico / Técnico en emergencias</option>
+            <option value="Piloto de aviación">Piloto de aviación</option>
+            <option value="Técnico de desactivación de explosivos (EOD)">Técnico de desactivación de explosivos (EOD)</option>
+            <option value="Técnico en radioterapia">Técnico en radioterapia</option>
+          </select>
+        </div>
+      </div>
+
+      <!-- Section: Connection & Analysis -->
+      <div class="setup-section">
+        <div class="setup-section-title"><i class="ti ti-api"></i> Conexión y análisis</div>
+        <div class="form-group">
+          <label for="api-key">API Key de Gemini</label>
+          <div class="input-with-toggle">
+            <input type="password" id="api-key" placeholder="Ingresa tu API key de Gemini">
+            <button class="toggle-btn" id="toggle-key" type="button" title="Mostrar/ocultar key">
+              <i class="ti ti-eye"></i>
+            </button>
+          </div>
+        </div>
+        <div class="form-row">
+          <div class="form-group">
+            <label>Intervalo: <span class="range-value" id="interval-display">30s</span></label>
+            <input type="range" id="analysis-interval" min="15" max="120" value="30" step="5">
+            <div class="range-labels"><span>15s</span><span>120s</span></div>
+          </div>
+          <div class="form-group">
+            <label for="alert-threshold">Umbral de alerta</label>
+            <select id="alert-threshold">
+              <option value="strict">Estricto</option>
+              <option value="normal" selected>Normal</option>
+              <option value="permissive">Permisivo</option>
+            </select>
+          </div>
+        </div>
+        <div class="form-group">
+          <label>Modo de análisis</label>
+          <div class="mode-selector" id="mode-selector">
+            <label class="mode-option active" data-mode="diagnostico">
+              <input type="radio" name="analysis-mode" value="diagnostico" checked>
+              <i class="ti ti-stethoscope"></i>
+              <div><div class="mode-option-title">Diagnóstico</div><div class="mode-desc">Evaluación detallada del estado cognitivo</div></div>
+            </label>
+            <label class="mode-option" data-mode="operacion">
+              <input type="radio" name="analysis-mode" value="operacion">
+              <i class="ti ti-tools"></i>
+              <div><div class="mode-option-title">Operación</div><div class="mode-desc">Monitoreo continuo de ejecución de tareas</div></div>
+            </label>
+            <label class="mode-option" data-mode="aprendizaje">
+              <input type="radio" name="analysis-mode" value="aprendizaje">
+              <i class="ti ti-book"></i>
+              <div><div class="mode-option-title">Aprendizaje</div><div class="mode-desc">Seguimiento de curvas de aprendizaje y retención</div></div>
+            </label>
+          </div>
+        </div>
+      </div>
+
+      <!-- Section: Capture -->
+      <div class="setup-section">
+        <div class="setup-section-title"><i class="ti ti-device-analytics"></i> Captura</div>
+        <div class="form-group" style="flex-direction:row;align-items:center;gap:8px">
+          <label style="margin-bottom:0;cursor:pointer;display:flex;align-items:center;gap:6px;text-transform:none;font-size:12px;font-weight:400">
+            <input type="checkbox" id="enable-screen" checked>
+            <i class="ti ti-device-desktop"></i> Capturar pantalla
+          </label>
+          <span style="font-size:10px;color:var(--text-tertiary)">Análisis combinado rostro + pantalla</span>
+        </div>
+        <div class="form-row" style="align-items:end">
+          <div class="form-group">
+            <label for="alert-sound">Sonido de alerta</label>
+            <select id="alert-sound">
+              <option value="none">Sin sonido</option>
+              <option value="critical" selected>Solo críticas</option>
+              <option value="all">Todas las alertas</option>
+            </select>
+          </div>
+          <div class="form-group" style="flex:0">
+            <div style="font-size:10px;color:var(--text-tertiary);display:flex;align-items:center;gap:4px;padding:4px 0"><i class="ti ti-volume"></i> Web Audio API</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <button class="btn btn-primary" id="start-btn" disabled style="flex-shrink:0; margin-top: 10px;">
+      <i class="ti ti-player-play"></i> Iniciar sesión de monitoreo
+    </button>
+  </div>
+</div>
+
+<!-- ===== DASHBOARD ===== -->
+<div id="dashboard-screen">
+  <!-- Topbar -->
+  <div id="topbar">
+    <span class="topbar-logo">◈ Agente Visual</span>
+    <span class="pill pill-muted" id="camera-status"><span class="pill-dot pill-dot-critical"></span> Sin cámara</span>
+    <span class="pill pill-muted" id="screen-status" style="display:none"><span class="pill-dot pill-dot-critical"></span> Sin pantalla</span>
+    <span class="pill pill-muted" id="gemini-status"><span class="pill-dot pill-dot-critical"></span> Sin conexión</span>
+    <span class="pill pill-muted" id="notif-status" title="Estado de notificaciones del sistema"><span class="pill-dot pill-dot-critical"></span> Notif. sistema</span>
+    <span class="pill pill-info" id="profile-pill">—</span>
+    <span class="pill pill-muted" id="app-pill" title="Aplicación activa"><i class="ti ti-device-desktop"></i> <span id="app-pill-text">—</span></span>
+    <span class="pill pill-concentration pill-safe" id="concentration-pill">CONCENTRACIÓN ÓPTIMA</span>
+    <span class="pill pill-muted" id="sensitivity-pill" style="cursor:pointer" title="Click para cambiar sensibilidad"><i class="ti ti-sliders"></i> <span id="sensitivity-text">Normal</span></span>
+    <div class="topbar-spacer"></div>
+    <span class="topbar-time" id="session-time">00:00:00</span>
+    <button class="btn-icon" id="compact-toggle" title="Compactar"><i class="ti ti-layout-sidebar-collapse"></i></button>
+    <button class="topbar-end-btn" id="end-session-btn"><i class="ti ti-player-stop"></i> Finalizar sesión</button>
+  </div>
+
+  <!-- Main Grid -->
+  <div id="main-grid">
+    <!-- LEFT COLUMN -->
+    <div class="grid-col" id="left-col">
+      <!-- Camera -->
+      <div>
+        <div class="section-label"><i class="ti ti-camera"></i> Cámara</div>
+        <div class="camera-box" id="camera-box">
+          <video id="camera-video" autoplay playsinline muted></video>
+          <div class="camera-placeholder" id="camera-placeholder">
+            <span><i class="ti ti-camera-off"></i> Cámara inactiva</span>
+          </div>
+          <div class="camera-overlay" id="camera-overlay">—</div>
+        </div>
+      </div>
+
+      <!-- Metrics -->
+      <div>
+        <div class="section-label"><i class="ti ti-chart-bar"></i> Métricas</div>
+        <div class="metrics-grid">
+          <div class="metric-card"><div class="value" id="metric-analyses">0</div><div class="label">Análisis</div></div>
+          <div class="metric-card"><div class="value" id="metric-time">00:00</div><div class="label">Tiempo</div></div>
+          <div class="metric-card"><div class="value" id="metric-alerts">0</div><div class="label">Alertas</div></div>
+          <div class="metric-card"><div class="value value-accent" id="metric-concentration">100%</div><div class="label">Concentración</div></div>
+        </div>
+      </div>
+
+      <!-- Orthographic errors -->
+      <div>
+        <div class="section-label"><i class="ti ti-spellcheck"></i> Ortografía</div>
+        <div class="ortho-card" id="ortho-card">
+          <div class="ortho-number" id="ortho-count">0</div>
+          <div class="ortho-label">errores detectados</div>
+        </div>
+      </div>
+
+      <!-- Goal -->
+      <div>
+        <div class="section-label"><i class="ti ti-target"></i> Objetivo</div>
+        <div class="goal-card">
+          <div class="goal-text" id="goal-text">—</div>
+          <div class="progress-bar"><div class="progress-bar-fill" id="goal-progress" style="width:0%"></div></div>
+          <div class="progress-label"><span>Progreso estimado</span><span id="goal-progress-text">0%</span></div>
+        </div>
+      </div>
+
+      <!-- Countdown -->
+      <div>
+        <div class="section-label"><i class="ti ti-clock"></i> Próximo análisis</div>
+        <div class="countdown-card">
+          <div class="countdown-number" id="countdown-number">30</div>
+          <div class="countdown-label">segundos</div>
+          <div class="countdown-bar"><div class="countdown-bar-fill" id="countdown-bar" style="width:0%"></div></div>
+        </div>
+      </div>
+
+      <!-- Concentration Trend -->
+      <div>
+        <div class="section-label"><i class="ti ti-trending-up"></i> Tendencia</div>
+        <div class="chart-card">
+          <canvas id="concentration-chart"></canvas>
+        </div>
+      </div>
+    </div>
+
+    <!-- CENTER COLUMN -->
+    <div class="grid-col" id="center-col">
+      <div class="center-header">
+        <h2><i class="ti ti-list"></i> Monitor de sesión</h2>
+        <span class="count" id="feed-count">0 entradas</span>
+      </div>
+      <div class="feed-container" id="feed-container">
+        <div class="feed-empty" id="feed-empty">
+          <i class="ti ti-radar"></i>
+          <span id="feed-empty-text">El sistema está activo. El primer análisis se realizará en 30s.</span>
+        </div>
+      </div>
+      <div class="feed-footer" id="feed-footer">
+        <span id="feed-status-text">Sistema listo</span>
+      </div>
+    </div>
+
+    <!-- RIGHT COLUMN -->
+    <div class="grid-col" id="right-col">
+      <div class="tab-nav">
+        <button class="tab-btn active" data-tab="reminders"><i class="ti ti-checks"></i> Recordatorios</button>
+        <button class="tab-btn" data-tab="apps"><i class="ti ti-devices"></i> Apps</button>
+        <button class="tab-btn" data-tab="tips"><i class="ti ti-brain"></i> Consejos</button>
+      </div>
+
+      <!-- Tab: Reminders -->
+      <div class="tab-content active" id="tab-reminders">
+        <div id="reminders-list"></div>
+        <div class="reminder-input-row">
+          <input type="text" id="reminder-input" placeholder="Agrega un recordatorio..." maxlength="100">
+          <button class="btn btn-sm btn-primary" id="add-reminder-btn"><i class="ti ti-plus"></i></button>
+        </div>
+      </div>
+
+      <!-- Tab: Apps -->
+      <div class="tab-content" id="tab-apps">
+        <div id="apps-list">
+          <div class="tab-empty">Aún no se han detectado aplicaciones. Los datos aparecerán tras el primer análisis.</div>
+        </div>
+      </div>
+
+      <!-- Tab: Tips -->
+      <div class="tab-content" id="tab-tips">
+        <div class="tip-filter-row" id="tip-filters">
+          <button class="tip-filter-btn active" data-filter="all">Todos</button>
+          <button class="tip-filter-btn" data-filter="efficiency"><i class="ti ti-bolt"></i> Eficiencia</button>
+          <button class="tip-filter-btn" data-filter="cognitive"><i class="ti ti-brain"></i> Cognitivos</button>
+          <button class="tip-filter-btn" data-filter="alert"><i class="ti ti-alert-circle"></i> Alertas</button>
+        </div>
+        <div id="tips-list">
+          <div class="tab-empty">Los consejos generados por Gemini aparecerán aquí durante la sesión.</div>
+        </div>
+      </div>
+    </div>
+</div>
+
+<!-- ===== NOTIFICATION CONTAINER ===== -->
+<div id="notification-container"></div>
+
+<!-- ===== SUMMARY MODAL ===== -->
+<div class="modal-overlay" id="summary-modal">
+  <div class="modal">
+    <h2>Resumen de sesión</h2>
+    <div class="modal-stat-grid">
+      <div class="modal-stat"><div class="value" id="summary-analyses">0</div><div class="label">Análisis realizados</div></div>
+      <div class="modal-stat"><div class="value" id="summary-alerts">0</div><div class="label">Alertas emitidas</div></div>
+      <div class="modal-stat"><div class="value" id="summary-concentration">0%</div><div class="label">Concentración promedio</div></div>
+      <div class="modal-stat"><div class="value" id="summary-duration">00:00</div><div class="label">Duración total</div></div>
+    </div>
+    <div class="modal-actions">
+      <button class="btn btn-primary" id="new-session-btn"><i class="ti ti-player-play"></i> Nueva sesión</button>
+      <button class="btn btn-outline" id="export-json-btn"><i class="ti ti-download"></i> Exportar JSON</button>
+    </div>
+  </div>
+</div>
+
+<!-- ===== HIDDEN CANVAS FOR CAPTURE ===== -->
+<canvas id="capture-canvas" style="display:none"></canvas>
+<video id="screen-video" autoplay playsinline muted style="display:none !important; position:absolute; width:1px; height:1px; opacity:0; pointer-events:none; left:-9999px;"></video>
+
+<!-- ===== JAVASCRIPT ===== -->
+<script>
+const state = {
+  apiKey: '',
+  userProfile: '',
+  sessionGoal: '',
+  intervalSeconds: 30,
+  alertThreshold: 'normal',
+  isRunning: false,
+  sessionStart: null,
+  analysisCount: 0,
+  alertCount: 0,
+  progress: 0,
+  currentFocusState: 'focused',
+  currentAlertLevel: 'safe',
+  avgConcentration: 100,
+  concentrationHistory: [],
+  feedEntries: [],
+  tips: [],
+  reminders: [],
+  appTimeTracking: {},
+  orthographicCount: 0,
+  currentApp: '',
+  currentPage: null,
+  cameraStream: null,
+  screenEnabled: false,
+  screenStream: null,
+  screenVideo: null,
+  lastAnalysisTime: 0,
+  analysisMode: 'diagnostico',
+  alertSound: 'critical',
+  isCompact: false,
+  currentSensitivityIndex: 1,
+  concentrationTimeline: [],
+};
+
+let analysisTimer = null;
+let countdownTimer = null;
+let sessionTimer = null;
+let countdownValue = 0;
+let isAnalyzing = false;
+
+const professionRules = {
+  'Analista de ciberseguridad': { escalation: 'normal', fatigueSensitivity: 'high', label: 'Detección de amenazas en tiempo real' },
+  'Anestesiólogo': { escalation: 'critical', fatigueSensitivity: 'extreme', label: 'Monitoreo pasivo prolongado' },
+  'Cirujano': { escalation: 'critical', fatigueSensitivity: 'extreme', label: 'Procedimiento de precisión quirúrgica' },
+  'Controlador de tráfico aéreo': { escalation: 'strict', fatigueSensitivity: 'extreme', label: 'Gestión de tráfico aéreo' },
+  'Day / Night Trader': { escalation: 'normal', fatigueSensitivity: 'normal', label: 'Operaciones financieras en vivo' },
+  'Dispatcher de emergencias 911': { escalation: 'normal', fatigueSensitivity: 'high', label: 'Coordinación de emergencias' },
+  'Ingeniero de lanzamiento espacial': { escalation: 'critical', fatigueSensitivity: 'extreme', label: 'Supervisión de lanzamiento' },
+  'Operador de grúa en construcción de altura': { escalation: 'critical', fatigueSensitivity: 'high', label: 'Operación de grúa torre' },
+  'Operador de planta nuclear': { escalation: 'critical', fatigueSensitivity: 'extreme', label: 'Control de planta nuclear' },
+  'Operador de sala de control eléctrica': { escalation: 'strict', fatigueSensitivity: 'high', label: 'Distribución de energía eléctrica' },
+  'Operador de sala de crisis financiera': { escalation: 'strict', fatigueSensitivity: 'high', label: 'Gestión de crisis financiera' },
+  'Paramédico / Técnico en emergencias': { escalation: 'normal', fatigueSensitivity: 'high', label: 'Atención prehospitalaria de emergencia' },
+  'Piloto de aviación': { escalation: 'strict', fatigueSensitivity: 'extreme', label: 'Pilotaje de aeronaves comerciales' },
+  'Técnico de desactivación de explosivos (EOD)': { escalation: 'critical', fatigueSensitivity: 'extreme', label: 'Desactivación de explosivos' },
+  'Técnico en radioterapia': { escalation: 'strict', fatigueSensitivity: 'high', label: 'Administración de radioterapia' },
+};
+
+const professionColors = {
+  'Analista de ciberseguridad': '#00D4AA',
+  'Anestesiólogo': '#8B5CF6',
+  'Cirujano': '#3B82F6',
+  'Controlador de tráfico aéreo': '#F59E0B',
+  'Day / Night Trader': '#1D9E75',
+  'Dispatcher de emergencias 911': '#EF4444',
+  'Ingeniero de lanzamiento espacial': '#A855F7',
+  'Operador de grúa en construcción de altura': '#F97316',
+  'Operador de planta nuclear': '#06B6D4',
+  'Operador de sala de control eléctrica': '#22D3EE',
+  'Operador de sala de crisis financiera': '#E85D2F',
+  'Paramédico / Técnico en emergencias': '#DC2626',
+  'Piloto de aviación': '#3B82F6',
+  'Técnico de desactivación de explosivos (EOD)': '#E11D48',
+  'Técnico en radioterapia': '#14B8A6',
+};
+
+function getProfessionRule(profile) {
+  return professionRules[profile] || { escalation: 'normal', fatigueSensitivity: 'normal', label: '' };
+}
+
+function applyProfessionRules(alertLevel, focusState, fatigueLevel, profile) {
+  const rules = getProfessionRule(profile);
+  const severityMap = { none: 0, mild: 1, moderate: 2, severe: 3 };
+  const fatigueNum = severityMap[fatigueLevel] || 0;
+  const isCriticalEscalation = rules.escalation === 'critical';
+  const isStrictEscalation = rules.escalation === 'strict';
+  const fatigueHigh = rules.fatigueSensitivity === 'high' || rules.fatigueSensitivity === 'extreme';
+  const fatigueExtreme = rules.fatigueSensitivity === 'extreme';
+
+  if (isCriticalEscalation && focusState !== 'focused') return 'critical';
+  if (isStrictEscalation && (focusState === 'absent' || focusState === 'fatigued')) return 'critical';
+  if (isStrictEscalation && focusState === 'distracted') return 'warning';
+  if (fatigueExtreme && fatigueNum >= 1 && focusState !== 'focused') return 'critical';
+  if (fatigueExtreme && fatigueNum >= 2) return 'critical';
+  if (fatigueHigh && fatigueNum >= 3) return 'critical';
+  if (fatigueHigh && fatigueNum >= 2 && focusState !== 'focused') return 'warning';
+  if (isCriticalEscalation && fatigueNum >= 1) return 'warning';
+
+  return alertLevel;
+}
+
+const $ = (s) => document.querySelector(s);
+const $$ = (s) => document.querySelectorAll(s);
+
+// ===== SETUP LOGIC =====
+const setupGoal = $('#session-goal');
+const setupProfile = $('#user-profile');
+const setupApiKey = $('#api-key');
+const setupInterval = $('#analysis-interval');
+const setupThreshold = $('#alert-threshold');
+const startBtn = $('#start-btn');
+const toggleKeyBtn = $('#toggle-key');
+
+function validateSetup() {
+  const valid = setupGoal.value.trim() && setupProfile.value && setupApiKey.value.trim();
+  startBtn.disabled = !valid;
+}
+
+setupGoal.addEventListener('input', validateSetup);
+setupProfile.addEventListener('change', validateSetup);
+setupApiKey.addEventListener('input', validateSetup);
+setupInterval.addEventListener('input', () => {
+  $('#interval-display').textContent = setupInterval.value + 's';
+  validateSetup();
+});
+setupThreshold.addEventListener('change', validateSetup);
+
+toggleKeyBtn.addEventListener('click', () => {
+  const input = setupApiKey;
+  if (input.type === 'password') {
+    input.type = 'text';
+    toggleKeyBtn.innerHTML = '<i class="ti ti-eye-off"></i>';
+  } else {
+    input.type = 'password';
+    toggleKeyBtn.innerHTML = '<i class="ti ti-eye"></i>';
+  }
+});
+
+// Analysis mode selector
+$$('.mode-option').forEach(el => {
+  el.addEventListener('click', () => {
+    $$('.mode-option').forEach(o => o.classList.remove('active'));
+    el.classList.add('active');
+    el.querySelector('input').checked = true;
+  });
+});
+
+// ===== CAMERA =====
+async function initCamera() {
+  try {
+    const stream = await navigator.mediaDevices.getUserMedia({
+      video: { facingMode: 'user', width: { ideal: 1280 }, height: { ideal: 720 } }
+    });
+    state.cameraStream = stream;
+    const video = $('#camera-video');
+    video.srcObject = stream;
+    await video.play();
+    $('#camera-placeholder').style.display = 'none';
+    video.style.display = 'block';
+    $('#camera-status').className = 'pill pill-safe';
+    $('#camera-status').innerHTML = '<span class="pill-dot pill-dot-safe"></span> Cámara activa';
+    return true;
+  } catch (err) {
+    $('#camera-status').className = 'pill pill-critical';
+    $('#camera-status').innerHTML = '<span class="pill-dot pill-dot-critical"></span> Sin cámara';
+    return false;
+  }
+}
+
+function captureFrame() {
+  const video = $('#camera-video');
+  const canvas = $('#capture-canvas');
+  const maxW = 1280;
+  let w = video.videoWidth || 640;
+  let h = video.videoHeight || 480;
+  if (w > maxW) { h = h * maxW / w; w = maxW; }
+  canvas.width = w;
+  canvas.height = h;
+  const ctx = canvas.getContext('2d');
+  ctx.drawImage(video, 0, 0, w, h);
+  return canvas.toDataURL('image/jpeg', 0.7).split(',')[1];
+}
+
+function stopCamera() {
+  if (state.cameraStream) {
+    state.cameraStream.getTracks().forEach(t => t.stop());
+    state.cameraStream = null;
+  }
+  const video = $('#camera-video');
+  video.srcObject = null;
+  video.style.display = 'none';
+  $('#camera-placeholder').style.display = 'flex';
+  $('#camera-status').className = 'pill pill-critical';
+  $('#camera-status').innerHTML = '<span class="pill-dot pill-dot-critical"></span> Sin cámara';
+}
+
+// ===== SCREEN CAPTURE =====
+async function initScreenCapture() {
+  if (!state.screenEnabled) return true;
+  try {
+    const stream = await navigator.mediaDevices.getDisplayMedia({
+      video: { cursor: 'always' },
+      audio: false,
+    });
+    state.screenStream = stream;
+    const screenVideo = $('#screen-video');
+    screenVideo.srcObject = stream;
+    screenVideo.style.display = 'none'; /* keep hidden - only used for canvas capture */
+    await screenVideo.play();
+    state.screenVideo = screenVideo;
+    stream.getVideoTracks()[0].addEventListener('ended', () => {
+      state.screenEnabled = false;
+      state.screenStream = null;
+      state.screenVideo = null;
+      $('#screen-status').className = 'pill pill-critical';
+      $('#screen-status').innerHTML = '<span class="pill-dot pill-dot-critical"></span> Pantalla detenida';
+    });
+    $('#screen-status').className = 'pill pill-safe';
+    $('#screen-status').innerHTML = '<span class="pill-dot pill-dot-safe"></span> Pantalla activa';
+    $('#screen-status').style.display = 'inline-flex';
+    return true;
+  } catch (err) {
+    state.screenEnabled = false;
+    $('#screen-status').className = 'pill pill-critical';
+    $('#screen-status').innerHTML = '<span class="pill-dot pill-dot-critical"></span> Sin pantalla';
+    $('#screen-status').style.display = 'inline-flex';
+    return false;
+  }
+}
+
+function captureScreen() {
+  const video = state.screenVideo;
+  if (!video || !state.screenEnabled) return null;
+  const canvas = document.createElement('canvas');
+  const w = 1280;
+  const h = video.videoHeight && video.videoWidth ? Math.round(1280 * video.videoHeight / video.videoWidth) : 720;
+  canvas.width = w;
+  canvas.height = h;
+  const ctx = canvas.getContext('2d');
+  ctx.drawImage(video, 0, 0, w, h);
+  return canvas.toDataURL('image/jpeg', 0.7).split(',')[1];
+}
+
+function stopScreenCapture() {
+  if (state.screenStream) {
+    state.screenStream.getTracks().forEach(t => t.stop());
+    state.screenStream = null;
+  }
+  const sv = $('#screen-video');
+  sv.srcObject = null;
+  sv.style.display = 'none';
+  state.screenVideo = null;
+  $('#screen-status').className = 'pill pill-critical';
+  $('#screen-status').innerHTML = '<span class="pill-dot pill-dot-critical"></span> Sin pantalla';
+}
+
+// ===== GEMINI API =====
+function buildPrompt() {
+  const profileSpecs = {
+    'Analista de ciberseguridad': 'El usuario monitorea amenazas de seguridad en tiempo real. Su pantalla típicamente muestra SIEM (Splunk, QRadar, ArcSight), consolas de firewall, paneles de detección de intrusiones, dashboards de vulnerabilidades y feeds de amenazas. Un momento de inatención puede significar no detectar un ataque activo. Detecta: fatiga visual por monitoreo prolongado, alert fatigue, desvío de atención durante horarios críticos, saturación cognitiva por múltiples incidentes simultáneos.',
+    'Anestesiólogo': 'El usuario monitorea signos vitales en tiempo real durante horas en procedimientos quirúrgicos. Su pantalla típicamente muestra monitores de anestesia (frecuencia cardíaca, presión arterial, saturación O2, CO2 espirado, profundidad anestésica), bombas de infusión y registros electrónicos de anestesia. El principal riesgo documentado es el "vigilance decrement". Detecta específicamente: parpadeo excesivo señal de fatiga visual, micro-sueños, postura de relajación excesiva que indica disminución de alerta.',
+    'Cirujano': 'El usuario realiza procedimientos médicos de precisión donde un movimiento equivocado es irreversible. Su entorno típico incluye monitores de signos vitales, pantallas de laparoscopía/endoscopía, equipos de anestesia y sistemas de navegación quirúrgica. Detecta: fatiga en manos, brazos o postura corporal, desviación de mirada del campo quirúrgico, tensión muscular excesiva, señales de somnolencia en procedimientos largos. La fatiga acumulada en cirugía es el mayor factor de riesgo documentado.',
+    'Controlador de tráfico aéreo': 'El usuario gestiona múltiples aeronaves simultáneamente en espacio aéreo controlado. Su pantalla muestra radar de tráfico aéreo, strips de vuelo electrónicos, paneles de comunicación VHF/UHF, sistemas de alerta de conflicto y meteorología aeronáutica. Un error de inatención puede derivar en accidente con cientos de víctimas. Detecta: sobrecarga cognitiva por alto volumen de tráfico, canalización de atención en un solo avión ignorando otros, fatiga visual y mental por turnos rotativos, disminución en tiempos de respuesta a conflictos.',
+    'Day / Night Trader': 'El usuario opera mercados financieros en tiempo real, solo, manejando posiciones activas. Su pantalla típicamente muestra plataformas de trading como TradingView, MetaTrader, Bloomberg Terminal, thinkorswim, Interactive Brokers, o similar — con gráficos de velas, libros de órdenes, profundidad de mercado (DOM), P&L en tiempo real y noticias financieras. Una decisión en estado de fatiga puede significar pérdidas económicas graves. Prioriza detectar: tensión excesiva antes de decisiones, signos de estrés agudo (manos en el rostro, mandíbula apretada), fatiga por pantallas múltiples. Alerta si lleva más de 90 minutos sin descanso.',
+    'Dispatcher de emergencias 911': 'El usuario coordina múltiples unidades de respuesta (policía, bomberos, ambulancias) simultáneamente bajo presión extrema. Su pantalla incluye sistemas CAD (Computer-Aided Dispatch), mapas GIS de incidentes, paneles de seguimiento de unidades, líneas de comunicación de emergencia y protocolos de respuesta. Maneja múltiples canales de información simultáneos. Detecta: saturación cognitiva por multitarea, fatiga vocal y mental por turnos, desorganización bajo caos de incidentes múltiples, disminución en precisión de despacho por estrés acumulado.',
+    'Ingeniero de lanzamiento espacial': 'El usuario supervisa sistemas críticos de vehículos de lanzamiento en ventanas de tiempo inamovibles. Sus consolas muestran telemetría de lanzamiento (empuje, trayectoria, presiones de tanques, temperatura de motores), sistemas de aborto de lanzamiento, estado de etapas, comunicaciones con rango y paneles de conteo regresivo. Cada segundo cuenta. Detecta: fijación en un solo parámetro ignorando lecturas críticas, fatiga por simulaciones prolongadas antes del lanzamiento real, ansiedad que afecta juicio técnico, errores de procedimiento por estrés.',
+    'Operador de grúa en construcción de altura': 'El usuario opera grúas torre o móviles en sitios de construcción en altura. Una distracción puede significar un accidente con múltiples víctimas. Su cabina o puesto de trabajo incluye controles de grúa (izaje, giro, pluma), indicadores de carga máxima, anemómetros, sistemas de telemetría de carga, radios de comunicación con señaleros y monitores de vídeo de zona de carga. Detecta: somnolencia por horas prolongadas en cabina, fatiga visual por monitoreo constante de altura, disminución de conciencia espacial (pérdida de noción de la posición de la carga), distracciones que desvían la atención de la operación principal.',
+    'Operador de planta nuclear': 'El usuario monitorea sistemas críticos de generación nuclear durante turnos prolongados. Su sala de control muestra paneles de instrumentación nuclear, sistemas de monitoreo de reactores (temperatura, presión, flujo neutrónico), indicadores de barras de control, sistemas de refrigeración y alarmas de seguridad. La inatención puede desencadenar fallos en cascada con consecuencias catastróficas. Detecta: vigilancia reducida durante periodos de operación rutinaria (vigilance decrement), somnolencia en turnos nocturnos, respuesta tardía a alarmas, fatiga acumulada.',
+    'Operador de sala de control eléctrica': 'El usuario gestiona la distribución de energía eléctrica de regiones enteras desde una sala de control. Su pantalla muestra SCADA (Supervisory Control and Data Acquisition), diagramas unifilares del sistema eléctrico, estado de subestaciones, flujo de carga, frecuencia de red y alarmas de contingencia. Un error puede dejar regiones sin suministro eléctrico. Detecta: inatención durante periodos de baja demanda que lleva a perder señales tempranas de fallo, fatiga en turnos nocturnos, sobrecarga cognitiva durante contingencias múltiples, automatización complacency.',
+    'Operador de sala de crisis financiera': 'El usuario gestiona posiciones de alto riesgo en ventanas de tiempo muy cortas. Su pantalla típicamente muestra paneles de riesgo en tiempo real, libros de órdenes institucionales, dashboards de exposición, sistemas de trading algorítmico y fuentes de noticias económicas globales (Bloomberg, Reuters). Opera bajo presión extrema con consecuencias económicas inmediatas. Detecta: parálisis por análisis bajo presión, signos de pánico o ansiedad aguda, fatiga por estrés sostenido, errores de juicio por agotamiento.',
+    'Paramédico / Técnico en emergencias': 'El usuario toma decisiones críticas bajo presión y fatiga extrema en entornos prehospitalarios. Su equipo incluye monitores de signos vitales portátiles, desfibriladores, equipos de vía aérea, sistemas de comunicación y tabletas con protocolos médicos. Opera en condiciones adversas con alto ruido cognitivo. Detecta: fatiga física y mental acumulada, apresuramiento en evaluaciones clínicas, disminución en la precisión de procedimientos bajo estrés, agotamiento por turnos prolongados.',
+    'Piloto de aviación': 'El usuario opera aeronaves en vuelos comerciales o de carga, especialmente en vuelos largos donde la fatiga cognitiva es el mayor riesgo documentado. Su cabina incluye instrumentos de vuelo (PFD, ND), sistemas de gestión de vuelo (FMS), paneles de navegación, comunicaciones por radio y monitores de sistemas de aeronave. Detecta: automatización complacency (excesiva dependencia de sistemas automáticos), fatiga en fase de crucero donde la vigilancia disminuye, micro-sueños, desaceleración en tiempos de reacción a alertas.',
+    'Técnico de desactivación de explosivos (EOD)': 'El usuario realiza procedimientos de desactivación de artefactos explosivos con precisión milimétrica donde cada movimiento es potencialmente catastrófico. Su equipo incluye sistemas robóticos de desactivación, equipos de rayos X portátiles, detectores de explosivos, disrupteres hidroneumáticos y trajes de protección EOD. El costo de una distracción es fatal. Detecta: temblores en manos señalando fatiga o estrés, respiración irregular que indica ansiedad aguda, apresuramiento en procedimientos de verificación, fatiga que compromete la precisión motora fina.',
+    'Técnico en radioterapia': 'El usuario administra dosis de radiación de precisión a pacientes oncológicos. Su entorno incluye sistemas de planificación de tratamiento (TPS), consolas de acelerador lineal, sistemas de verificación de dosis y registros médicos electrónicos. Un error de cálculo o distracción afecta directamente al paciente con consecuencias irreversibles. Detecta: desvío de atención durante procedimientos de verificación, fatiga que pueda afectar precisión en posicionamiento del paciente, prisa o automatización en chequeos de seguridad.',
+  };
+  const rules = getProfessionRule(state.userProfile);
+  const spec = profileSpecs[state.userProfile] || 'Evalúa el estado cognitivo general del profesional de alta demanda. Detecta fatiga, distracción y falta de concentración con criterio estricto. Identifica el contexto visible en su pantalla o entorno de trabajo para determinar qué está haciendo.';
+
+  const modeContext = {
+    diagnostico: 'Modo DIAGNÓSTICO: Evalúa en profundidad el estado cognitivo del usuario. Prioriza detectar patrones de fatiga temprana, micro-distracciones y cambios sutiles en la concentración antes de que se conviertan en problemas mayores. Sé especialmente detallado en el análisis de riesgo.',
+    operacion: 'Modo OPERACIÓN: Monitoreo continuo enfocado en la ejecución de tareas del usuario. Prioriza detectar desviaciones del objetivo principal de la sesión. Evalúa si el usuario está realizando su tarea crítica o si hay señales de desvío de atención hacia actividades secundarias.',
+    aprendizaje: 'Modo APRENDIZAJE: Seguimiento de curvas de aprendizaje y retención. Evalúa si el usuario está en un estado receptivo para nuevo conocimiento. Detecta sobrecarga cognitiva que impida el aprendizaje efectivo. Valora positivamente el esfuerzo sostenido incluso si la eficiencia no es máxima.',
+  };
+  const modeInstruction = modeContext[state.analysisMode] || modeContext.diagnostico;
+
+  const multimodalSection = state.screenEnabled
+    ? 'Recibes DOS imágenes en cada análisis: (1) la cámara del usuario mostrando su rostro y lenguaje corporal, y (2) una captura de su pantalla mostrando exactamente lo que está viendo y haciendo en ese instante. Analiza AMBAS imágenes en conjunto: correlaciona la expresión facial del usuario con la actividad en su pantalla. Por ejemplo: ¿está estresado porque el mercado cae? ¿fatigado mirando monitores médicos? ¿concentrado en un panel de control crítico?'
+    : 'Recibes UNA imagen de la cámara del usuario mostrando su rostro. Analiza expresión facial, postura y dirección de la mirada.';
+
+  return `Eres un sistema de monitoreo cognitivo especializado en profesionales de alta demanda. Tu función es analizar el estado de atención y concentración del usuario en tiempo real.
+
+${modeInstruction}
+
+Perfil del usuario: ${state.userProfile} (${rules.label || 'Alta demanda cognitiva'})
+Objetivo de la sesión: ${state.sessionGoal}
+Análisis previos realizados: ${state.analysisCount}
+Alertas emitidas hasta ahora: ${state.alertCount}
+Progreso estimado previo: ${state.progress}%
+
+${spec}
+
+${multimodalSection}
+
+IDENTIFICA la aplicación de escritorio activa ("currentApp") y, si está en un navegador, la página web específica ("pageDetected"). Usa "appDetected" como nombre descriptivo combinado para mostrar en la UI. Ejemplo: currentApp: "Visual Studio Code", pageDetected: null, appDetected: "VS Code — script.js". Otro ejemplo: currentApp: "Google Chrome", pageDetected: "Documentación de Python — docs.python.org", appDetected: "Chrome — Documentación Python".
+
+ORTOGRAFÍA: Si ves texto escrito por el usuario en la pantalla (Word, editor de código, email, navegador, chat, etc.), REVISA ese texto y DETECTA errores ortográficos o gramaticales. Reporta cada error con la palabra incorrecta, la sugerencia de corrección y el contexto breve. Si no hay texto visible o no hay errores, devuelve orthographicErrors vacío [].
+
+ANALIZA la imagen de cámara del usuario (expresión facial, postura, dirección de la mirada, señales de fatiga como parpadeo excesivo, ojos caídos, bostezo, tensión facial).
+
+DETECTA específicamente:
+1. Nivel de concentración: óptimo / reducido / crítico
+2. Señales de fatiga: ausente / leve / moderada / severa
+3. Señales de distracción: enfocado / levemente distraído / muy distraído / ausente
+4. Patrones de riesgo según el perfil
+
+GENERA:
+1. Un análisis inmediato de máximo 2 oraciones, directo, específico (menciona lo que ves en pantalla y rostro) y sin saludos
+2. Un consejo específico para el perfil del usuario
+3. Una categoría de consejo: efficiency / cognitive / alert
+4. El nivel de alerta: safe / warning / critical
+5. El estado de atención detectado: focused / distracted / absent / fatigued
+6. Progreso estimado hacia el objetivo de sesión (0-100)
+7. App detectada (combinación de app + página para mostrar en feed)
+8. La aplicación de escritorio activa
+9. La página web específica si aplica
+10. Errores ortográficos visibles en pantalla (array vacío si no hay)
+
+IMPORTANTE: Este sistema protege a profesionales donde un error puede tener consecuencias graves. Sé directo, específico y sin eufemismos. Si detectas fatiga severa o distracción crítica, dilo claramente. Correlaciona siempre lo que ves en el rostro con lo que ves en la pantalla.
+
+Responde ÚNICAMENTE con JSON sin backticks ni texto adicional:
+{
+  "feedback": "análisis inmediato combinando rostro y pantalla",
+  "alertLevel": "safe|warning|critical",
+  "focusState": "focused|distracted|absent|fatigued",
+  "tip": { "category": "efficiency|cognitive|alert", "text": "consejo específico para el perfil" },
+  "appDetected": "nombre descriptivo combinado para la UI",
+  "currentApp": "nombre de la aplicación de escritorio activa (Chrome, Word, VS Code, etc.)",
+  "pageDetected": "título o URL de la página web si aplica, o null",
+  "orthographicErrors": [{"word": "palabra incorrecta", "suggestion": "corrección sugerida", "context": "texto breve alrededor del error"}],
+  "progress": 0,
+  "fatigueLevel": "none|mild|moderate|severe",
+  "riskPattern": "descripción breve de patrón de riesgo detectado o null"
+}`;
+}
+
+async function analyzeWithGemini(cameraFrame, screenFrame) {
+  const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${state.apiKey}`;
+  const parts = [{ text: buildPrompt() }];
+  parts.push({ inline_data: { mime_type: 'image/jpeg', data: cameraFrame } });
+  if (screenFrame) {
+    parts.push({ inline_data: { mime_type: 'image/jpeg', data: screenFrame } });
+  }
+  const body = { contents: [{ parts }] };
+  const res = await fetch(url, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(body)
+  });
+  if (!res.ok) {
+    const errText = await res.text();
+    let cleanMsg;
+    try { const j = JSON.parse(errText); cleanMsg = j.error?.message || ''; } catch { cleanMsg = ''; }
+    const code = res.status;
+    if (code === 429) cleanMsg = 'Límite de solicitudes alcanzado. Espera 30 segundos antes del próximo análisis.';
+    else if (code === 403) cleanMsg = 'API key inválida o sin permisos. Verifica tu clave en Google AI Studio.';
+    else if (code === 400) cleanMsg = 'Solicitud inválida. Verifica el formato de las imágenes o el prompt.';
+    else if (code === 500) cleanMsg = 'Error interno del servidor de Gemini. Intenta de nuevo en unos segundos.';
+    else if (code === 503) cleanMsg = 'Servicio temporalmente no disponible. Espera unos segundos.';
+    else cleanMsg = cleanMsg || 'Error inesperado en la API de Gemini. Verifica tu API key e internet.';
+    throw new Error(`Error ${code} — ${cleanMsg}`);
+  }
+  const data = await res.json();
+  const raw = data.candidates[0].content.parts[0].text;
+  const cleaned = raw.replace(/```json|```/g, '').trim();
+  const jsonMatch = cleaned.match(/\{[\s\S]*\}/);
+  if (!jsonMatch) throw new Error('No se pudo extraer JSON de la respuesta');
+  return JSON.parse(jsonMatch[0]);
+}
+
+function getFallbackResult() {
+  return {
+    feedback: 'No se pudo completar el análisis en este ciclo.',
+    alertLevel: 'safe',
+    focusState: 'focused',
+    tip: { category: 'cognitive', text: 'Verifica tu conexión a internet y la validez de tu API key.' },
+    appDetected: null,
+    progress: state.progress,
+    fatigueLevel: 'none',
+    riskPattern: null
+  };
+}
+
+// ===== NOTIFICATIONS =====
+function showNotification(level, text, tip) {
+  showSystemNotification(level, text);
+  playAlertSound(level);
+  const container = $('#notification-container');
+  const notif = document.createElement('div');
+  const levelNames = { safe: 'Informativo', warning: 'Atención', critical: 'Crítica' };
+  const levelColors = { safe: 'notif-safe', warning: 'notif-warning', critical: 'notif-critical' };
+  const badgeColors = { safe: 'pill-info', warning: 'pill-warning', critical: 'pill-critical' };
+  const duration = level === 'critical' ? 15000 : 10000;
+  notif.className = `notification ${levelColors[level] || 'notif-safe'}`;
+  notif.innerHTML = `
+    <div class="notif-header">
+      <span class="notif-title">◈ Agente Visual <span class="notif-level ${badgeColors[level]}">${levelNames[level]}</span></span>
+      <button class="notif-close"><i class="ti ti-x"></i></button>
+    </div>
+    <div class="notif-body">${text}</div>
+    <div class="notif-timer"><div class="notif-timer-fill" style="width:100%;background:${level === 'critical' ? 'var(--accent-critical)' : level === 'warning' ? 'var(--accent-secondary)' : 'var(--accent-blue)'}"></div></div>
+  `;
+  notif.querySelector('.notif-close').addEventListener('click', () => {
+    notif.classList.add('out');
+    setTimeout(() => notif.remove(), 300);
+  });
+  container.appendChild(notif);
+  const timerFill = notif.querySelector('.notif-timer-fill');
+  const startTime = Date.now();
+  const timerInterval = setInterval(() => {
+    const elapsed = Date.now() - startTime;
+    const remaining = Math.max(0, 1 - elapsed / duration);
+    timerFill.style.width = (remaining * 100) + '%';
+    if (elapsed >= duration) {
+      clearInterval(timerInterval);
+      notif.classList.add('out');
+      setTimeout(() => notif.remove(), 300);
+    }
+  }, 50);
+}
+
+// ===== SYSTEM NOTIFICATIONS (Notification API) =====
+function requestNotifPermission() {
+  if (!('Notification' in window)) return;
+  if (Notification.permission === 'default' || Notification.permission === 'denied') {
+    Notification.requestPermission();
+  }
+}
+
+function showSystemNotification(level, text) {
+  if (!('Notification' in window)) return;
+  if (Notification.permission !== 'granted') return;
+  const levelNames = { safe: 'INFO', warning: 'ATENCIÓN', critical: '⚠ CRÍTICA' };
+  const title = `◈ Agente Visual — ${levelNames[level] || 'INFO'}`;
+  const isCritical = level === 'critical';
+  const options = {
+    body: text,
+    tag: 'av-' + Date.now(),
+    requireInteraction: true,
+    silent: false,
+    renotify: true,
+    vibrate: isCritical ? [200, 100, 200] : [150],
+  };
+  try {
+    const n = new Notification(title, options);
+    if (isCritical) {
+      setTimeout(() => n.close(), 20000);
+    }
+  } catch (e) { /* fallback */ }
+}
+
+// ===== ALERT SOUNDS (Web Audio API) =====
+let audioCtx = null;
+function playAlertSound(level) {
+  if (state.alertSound === 'none') return;
+  if (state.alertSound === 'critical' && level !== 'critical') return;
+  try {
+    if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+    const osc = audioCtx.createOscillator();
+    const gain = audioCtx.createGain();
+    osc.connect(gain);
+    gain.connect(audioCtx.destination);
+    osc.type = 'sine';
+    if (level === 'critical') {
+      osc.frequency.value = 880;
+      gain.gain.setValueAtTime(0.3, audioCtx.currentTime);
+      gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.6);
+      osc.start(audioCtx.currentTime);
+      osc.stop(audioCtx.currentTime + 0.6);
+      setTimeout(() => {
+        const o2 = audioCtx.createOscillator();
+        const g2 = audioCtx.createGain();
+        o2.connect(g2); g2.connect(audioCtx.destination);
+        o2.type = 'sine';
+        o2.frequency.value = 660;
+        g2.gain.setValueAtTime(0.3, audioCtx.currentTime);
+        g2.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.4);
+        o2.start(audioCtx.currentTime);
+        o2.stop(audioCtx.currentTime + 0.4);
+      }, 200);
+    } else {
+      osc.frequency.value = 660;
+      gain.gain.setValueAtTime(0.2, audioCtx.currentTime);
+      gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.3);
+      osc.start(audioCtx.currentTime);
+      osc.stop(audioCtx.currentTime + 0.3);
+    }
+  } catch (e) { /* audio fallback */ }
+}
+
+// ===== SENSITIVITY LEVELS =====
+const sensitivityLevels = [
+  { label: 'Máxima', threshold: 'maxima', desc: 'Alerta ante cualquier distracción' },
+  { label: 'Alta', threshold: 'strict', desc: 'Solo warning y críticas' },
+  { label: 'Normal', threshold: 'normal', desc: 'Warning y críticas' },
+  { label: 'Baja', threshold: 'permissive', desc: 'Solo críticas' },
+];
+
+function cycleSensitivity() {
+  state.currentSensitivityIndex = (state.currentSensitivityIndex + 1) % sensitivityLevels.length;
+  const level = sensitivityLevels[state.currentSensitivityIndex];
+  state.alertThreshold = level.threshold;
+  const pill = $('#sensitivity-pill');
+  pill.className = 'pill pill-muted';
+  if (level.threshold === 'maxima') pill.classList.add('pill-warning');
+  else if (level.threshold === 'permissive') pill.classList.add('pill-info');
+  $('#sensitivity-text').textContent = level.label;
+  // Also update the setup select if it exists
+  if (setupThreshold) setupThreshold.value = level.threshold === 'maxima' ? 'strict' : level.threshold;
+}
+
+// ===== CONCENTRATION CHART (Chart.js) =====
+let concentrationChart = null;
+
+function initConcentrationChart() {
+  const canvas = document.getElementById('concentration-chart');
+  if (!canvas) return;
+  const ctx = canvas.getContext('2d');
+  if (concentrationChart) { concentrationChart.destroy(); concentrationChart = null; }
+  concentrationChart = new Chart(ctx, {
+    type: 'line',
+    data: {
+      labels: ['0s'],
+      datasets: [{
+        label: 'Concentración',
+        data: [100],
+        borderColor: '#00B4D8',
+        backgroundColor: 'rgba(0, 180, 216, 0.08)',
+        borderWidth: 2,
+        pointRadius: 0,
+        fill: true,
+        tension: 0.3,
+      }]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      animation: { duration: 300 },
+      plugins: { legend: { display: false }, tooltip: { enabled: false } },
+      scales: {
+        x: { display: false },
+        y: { min: 0, max: 100, display: false }
+      }
+    }
+  });
+}
+
+function updateConcentrationChart() {
+  if (!concentrationChart) return;
+  const points = state.concentrationTimeline;
+  if (points.length === 0) return;
+  const labels = points.map(p => p.time < 60 ? p.time + 's' : Math.floor(p.time / 60) + 'm');
+  concentrationChart.data.labels = labels;
+  concentrationChart.data.datasets[0].data = points.map(p => p.value);
+  concentrationChart.update('none');
+}
+
+// ===== TABS =====
+$$('.tab-btn').forEach(btn => {
+  btn.addEventListener('click', () => {
+    $$('.tab-btn').forEach(b => b.classList.remove('active'));
+    $$('.tab-content').forEach(t => t.classList.remove('active'));
+    btn.classList.add('active');
+    const tabId = btn.dataset.tab;
+    const content = document.getElementById('tab-' + tabId);
+    if (content) content.classList.add('active');
+  });
+});
+
+// ===== REMINDERS =====
+const reminderInput = $('#reminder-input');
+$('#add-reminder-btn').addEventListener('click', addReminder);
+reminderInput.addEventListener('keydown', (e) => { if (e.key === 'Enter') addReminder(); });
+
+function addReminder() {
+  const text = reminderInput.value.trim();
+  if (!text || state.reminders.length >= 10) return;
+  state.reminders.push({ text, done: false });
+  reminderInput.value = '';
+  renderReminders();
+}
+
+function renderReminders() {
+  const list = $('#reminders-list');
+  if (state.reminders.length === 0) {
+    list.innerHTML = '<div class="tab-empty">Agrega recordatorios críticos de tu sesión</div>';
+    return;
+  }
+  list.innerHTML = state.reminders.map((r, i) => `
+    <div class="reminder-item ${r.done ? 'done' : ''}">
+      <button class="btn-icon" data-toggle="${i}"><i class="ti ti-${r.done ? 'check-circle' : 'circle'}"></i></button>
+      <span class="reminder-text">${r.text}</span>
+      <button class="btn-icon" data-remove="${i}"><i class="ti ti-trash"></i></button>
+    </div>
+  `).join('');
+  list.querySelectorAll('[data-toggle]').forEach(el => {
+    el.addEventListener('click', () => {
+      const i = parseInt(el.dataset.toggle);
+      state.reminders[i].done = !state.reminders[i].done;
+      renderReminders();
+    });
+  });
+  list.querySelectorAll('[data-remove]').forEach(el => {
+    el.addEventListener('click', () => {
+      const i = parseInt(el.dataset.remove);
+      state.reminders.splice(i, 1);
+      renderReminders();
+    });
+  });
+}
+renderReminders();
+
+// ===== TIPS =====
+let tipFilter = 'all';
+$$('.tip-filter-btn').forEach(btn => {
+  btn.addEventListener('click', () => {
+    $$('.tip-filter-btn').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    tipFilter = btn.dataset.filter;
+    renderTips();
+  });
+});
+
+function renderTips() {
+  const list = $('#tips-list');
+  const filtered = tipFilter === 'all' ? state.tips : state.tips.filter(t => t.category === tipFilter);
+  if (filtered.length === 0) {
+    list.innerHTML = '<div class="tab-empty">Los consejos generados por Gemini aparecerán aquí durante la sesión.</div>';
+    return;
+  }
+  const catIcons = { efficiency: '⚡', cognitive: '🧠', alert: '⚠' };
+  const catLabels = { efficiency: 'Eficiencia', cognitive: 'Cognitivos', alert: 'Alertas' };
+  list.innerHTML = filtered.map((t, i) => `
+    <div class="tip-item">
+      <div class="tip-item-header">
+        <span class="tip-badge tip-badge-${t.category}">${catIcons[t.category] || ''} ${catLabels[t.category] || t.category}</span>
+        ${i === 0 ? ' <span class="tip-badge tip-badge-new">Nuevo</span>' : ''}
+      </div>
+      <div class="tip-text">${t.text}</div>
+      <div class="tip-time">${t.timestamp || ''}</div>
+    </div>
+  `).join('');
+}
+
+// ===== APPS TRACKING =====
+function renderApps() {
+  const list = $('#apps-list');
+  const entries = Object.entries(state.appTimeTracking);
+  if (entries.length === 0) {
+    list.innerHTML = '<div class="tab-empty">Aún no se han detectado aplicaciones. Los datos aparecerán tras el primer análisis.</div>';
+    return;
+  }
+  const total = Math.max(1, entries.reduce((s, [, v]) => s + v, 0));
+  const sorted = entries.sort((a, b) => b[1] - a[1]);
+  const formatTime = (sec) => {
+    const m = Math.floor(sec / 60);
+    const s = Math.floor(sec % 60);
+    return `${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`;
+  };
+  list.innerHTML = sorted.map(([app, sec]) => {
+    const isActive = state.currentApp && (app.includes(state.currentApp) || state.currentApp.includes(app));
+    return `
+    <div class="app-item${isActive ? ' app-item-active' : ''}">
+      <div class="app-item-header">
+        <span class="app-item-name">${isActive ? '<i class="ti ti-player-play" style="color:#00B4D8"></i>' : '<i class="ti ti-device-desktop"></i>'} ${app}</span>
+        <span class="app-item-time">${formatTime(sec)}</span>
+      </div>
+      <div class="app-bar"><div class="app-bar-fill" style="width:${(sec/total*100).toFixed(1)}%;background:var(--accent-blue)"></div></div>
+    </div>`;
+  }).join('');
+}
+
+// ===== FEED =====
+function addFeedEntry(entry) {
+  state.feedEntries.unshift(entry);
+  renderFeed();
+}
+
+function renderFeed() {
+  const container = $('#feed-container');
+  const empty = $('#feed-empty');
+  const countEl = $('#feed-count');
+  container.querySelectorAll('.feed-entry').forEach(el => el.remove());
+  if (state.feedEntries.length === 0) {
+    empty.style.display = 'flex';
+    countEl.textContent = '0 entradas';
+    return;
+  }
+  empty.style.display = 'none';
+  countEl.textContent = state.feedEntries.length + ' entradas';
+  state.feedEntries.forEach(e => {
+    const levelClass = e.alertLevel === 'critical' ? 'feed-entry-critical' : e.alertLevel === 'warning' ? 'feed-entry-warning' : e.alertLevel === 'safe' ? 'feed-entry-safe' : 'feed-entry-info';
+    const badgeClass = e.alertLevel === 'critical' ? 'feed-entry-badge-critical' : e.alertLevel === 'warning' ? 'feed-entry-badge-warning' : e.alertLevel === 'safe' ? 'feed-entry-badge-safe' : 'feed-entry-badge-info';
+    const badgeText = e.alertLevel === 'critical' ? 'CRÍTICA' : e.alertLevel === 'warning' ? 'ADVERTENCIA' : e.alertLevel === 'safe' ? 'OK' : 'INFO';
+    const appInfo = e.appDetected ? `<span class="feed-entry-app">${e.appDetected}</span>` : '';
+    const div = document.createElement('div');
+    div.className = `feed-entry ${levelClass}`;
+    div.innerHTML = `<div class="feed-entry-header">
+      <span class="feed-entry-time">${e.timestamp}</span>
+      <span class="feed-entry-badge ${badgeClass}">${badgeText}</span>
+      ${appInfo}
+    </div>
+    <div class="feed-entry-body">${e.feedback}</div>`;
+    container.insertBefore(div, empty);
+  });
+}
+
+// ===== UI UPDATES =====
+function updateTopbar() {
+  const focusLabels = {
+    focused: { text: 'CONCENTRACIÓN ÓPTIMA', cls: 'pill-safe' },
+    distracted: { text: 'ATENCIÓN REDUCIDA', cls: 'pill-warning' },
+    absent: { text: '⚠ ALERTA CRÍTICA', cls: 'pill-critical' },
+    fatigued: { text: '⚠ ALERTA CRÍTICA', cls: 'pill-critical' }
+  };
+  const info = focusLabels[state.currentFocusState] || focusLabels.focused;
+  const pill = $('#concentration-pill');
+  pill.className = 'pill pill-concentration ' + info.cls;
+  pill.textContent = info.text;
+
+  const geminiOk = state.analysisCount > 0 || state.isRunning;
+  $('#gemini-status').className = geminiOk ? 'pill pill-safe' : 'pill pill-critical';
+  $('#gemini-status').innerHTML = `<span class="pill-dot pill-dot-${geminiOk ? 'safe' : 'critical'}"></span> ${geminiOk ? 'IA conectada' : 'Sin conexión'}`;
+
+  const notifOk = 'Notification' in window && Notification.permission === 'granted';
+  const notifEl = $('#notif-status');
+  const notifNeeded = state.isRunning && (state.alertCount > 0 || state.analysisCount > 0);
+  notifEl.className = 'pill' + (notifOk ? ' pill-safe' : (state.isRunning ? ' pill-warning' : ' pill-muted'));
+  notifEl.innerHTML = `<span class="pill-dot pill-dot-${notifOk ? 'safe' : (state.isRunning ? 'warning' : 'critical')}"></span> ${notifOk ? 'Notif. activas' : 'Sin notif. sistema'}`;
+  if (!notifOk && state.isRunning) notifEl.title = 'Las notificaciones del sistema requieren HTTPS. Usa un servidor local (python -m http.server 8080).';
+
+  $('#profile-pill').textContent = state.userProfile;
+
+  const appText = state.currentApp || '—';
+  const pageText = state.currentPage ? ` · ${state.currentPage}` : '';
+  const appEl = $('#app-pill-text');
+  if (appEl.textContent !== appText || (pageText && !appEl.title?.includes('·'))) {
+    appEl.textContent = appText;
+    $('#app-pill').title = appText + pageText;
+    $('#app-pill').className = 'pill' + (state.currentApp ? ' pill-info' : ' pill-muted');
+  }
+}
+
+function updateMetrics() {
+  const t = state.sessionStart ? Math.floor((Date.now() - state.sessionStart) / 1000) : 0;
+  const m = Math.floor(t / 60);
+  const s = t % 60;
+  $('#metric-time').textContent = `${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`;
+  $('#metric-analyses').textContent = state.analysisCount;
+  const alertsEl = $('#metric-alerts');
+  alertsEl.textContent = state.alertCount;
+  alertsEl.className = 'value' + (state.alertCount > 0 ? ' value-danger' : '');
+  const concEl = $('#metric-concentration');
+  concEl.textContent = Math.round(state.avgConcentration) + '%';
+  concEl.className = 'value value-accent';
+
+  $('#ortho-count').textContent = state.orthographicCount;
+}
+
+function updateCountdown() {
+  const remaining = state.intervalSeconds - Math.floor((Date.now() - state.lastAnalysisTime) / 1000);
+  countdownValue = Math.max(0, remaining);
+  $('#countdown-number').textContent = countdownValue;
+  const elapsed = state.intervalSeconds - countdownValue;
+  const pct = (elapsed / state.intervalSeconds) * 100;
+  $('#countdown-bar').style.width = pct + '%';
+  const emptyEl = $('#feed-empty');
+  if (state.feedEntries.length === 0 && emptyEl && emptyEl.style.display !== 'none') {
+    $('#feed-empty-text').textContent = `El sistema está activo. El primer análisis se realizará en ${countdownValue}s.`;
+  }
+}
+
+function updateGoalProgress() {
+  $('#goal-progress').style.width = state.progress + '%';
+  $('#goal-progress-text').textContent = state.progress + '%';
+}
+
+function updateCameraOverlay() {
+  const labels = {
+    focused: 'Enfocado ✓',
+    distracted: 'Distraído',
+    absent: 'Ausente',
+    fatigued: 'Señales de fatiga'
+  };
+  const box = $('#camera-box');
+  box.className = 'camera-box';
+  if (state.currentFocusState === 'focused') box.classList.add('cam-focused');
+  else if (state.currentFocusState === 'distracted') box.classList.add('cam-distracted');
+  else if (state.currentFocusState === 'absent') box.classList.add('cam-absent');
+  else if (state.currentFocusState === 'fatigued') box.classList.add('cam-fatigued');
+  $('#camera-overlay').textContent = labels[state.currentFocusState] || '—';
+}
+
+function updateSessionTimer() {
+  if (!state.sessionStart) return;
+  const elapsed = Math.floor((Date.now() - state.sessionStart) / 1000);
+  const h = Math.floor(elapsed / 3600);
+  const m = Math.floor((elapsed % 3600) / 60);
+  const s = elapsed % 60;
+  $('#session-time').textContent = `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`;
+}
+
+function updateAllUI() {
+  updateTopbar();
+  updateMetrics();
+  updateGoalProgress();
+  updateCameraOverlay();
+}
+
+// ===== ANALYSIS CYCLE =====
+async function runAnalysis() {
+  if (isAnalyzing || !state.isRunning) return;
+  isAnalyzing = true;
+  $('#feed-status-text').innerHTML = '<span class="analyzing-spinner"></span> Analizando con Gemini 2.5 Flash...';
+  try {
+    const frame = captureFrame();
+    const screenFrame = captureScreen();
+    const result = await analyzeWithGemini(frame, screenFrame);
+    state.analysisCount++;
+
+    const alertLevel = applyProfessionRules(result.alertLevel || 'safe', result.focusState || 'focused', result.fatigueLevel || 'none', state.userProfile);
+    state.currentAlertLevel = alertLevel;
+    state.currentFocusState = result.focusState || 'focused';
+    state.progress = typeof result.progress === 'number' ? result.progress : state.progress;
+    state.concentrationHistory.push(alertLevel === 'safe' ? 100 : alertLevel === 'warning' ? 60 : 30);
+    state.avgConcentration = state.concentrationHistory.reduce((a, b) => a + b, 0) / state.concentrationHistory.length;
+
+    const elapsedSec = Math.floor((Date.now() - state.sessionStart) / 1000);
+    state.concentrationTimeline.push({ time: elapsedSec, value: state.avgConcentration });
+    updateConcentrationChart();
+
+    if (result.appDetected) {
+      const app = result.appDetected;
+      state.appTimeTracking[app] = (state.appTimeTracking[app] || 0) + state.intervalSeconds;
+    }
+    state.currentApp = result.currentApp || result.appDetected || state.currentApp;
+    state.currentPage = result.pageDetected || null;
+
+    if (result.orthographicErrors && result.orthographicErrors.length > 0) {
+      state.orthographicCount += result.orthographicErrors.length;
+      const now = new Date();
+      const ts = now.toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+      for (const err of result.orthographicErrors) {
+        addFeedEntry({
+          alertLevel: 'info',
+          feedback: `✎ Ortografía: "${err.word}" → <strong>${err.suggestion}</strong> ${err.context ? '<span style="color:#6666AA;font-size:10px">(' + err.context + ')</span>' : ''}`,
+          timestamp: ts,
+          appDetected: null
+        });
+      }
+    }
+
+    if (alertLevel === 'warning' || alertLevel === 'critical') {
+      state.alertCount++;
+    }
+
+    if (result.tip && result.tip.text) {
+      state.tips.unshift({
+        category: result.tip.category || 'cognitive',
+        text: result.tip.text,
+        timestamp: new Date().toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' })
+      });
+    }
+
+    const now = new Date();
+    const timestamp = now.toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+    addFeedEntry({
+      alertLevel,
+      feedback: result.feedback || 'Análisis completado.',
+      timestamp,
+      appDetected: result.appDetected || null
+    });
+
+    const shouldNotify = alertLevel === 'critical' ||
+      (alertLevel === 'warning' && state.alertThreshold !== 'permissive') ||
+      (alertLevel === 'safe' && state.alertThreshold === 'maxima' && result.focusState !== 'focused');
+    if (shouldNotify) {
+      showNotification(alertLevel, result.feedback, result.tip);
+    }
+
+    updateAllUI();
+    renderApps();
+    renderTips();
+    $('#feed-status-text').textContent = `Último análisis: ${timestamp}`;
+  } catch (err) {
+    const errMsg = err.message.includes('Error') ? err.message : 'Error — ' + err.message;
+    $('#feed-status-text').textContent = errMsg;
+    addFeedEntry({
+      alertLevel: 'warning',
+      feedback: errMsg,
+      timestamp: new Date().toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit', second: '2-digit' }),
+      appDetected: null
+    });
+  } finally {
+    isAnalyzing = false;
+    state.lastAnalysisTime = Date.now();
+    countdownValue = state.intervalSeconds;
+    updateCountdown();
+  }
+}
+
+// ===== SESSION LIFECYCLE =====
+let isStarting = false;
+
+async function startSession() {
+  if (isStarting) return;
+  isStarting = true;
+  startBtn.disabled = true;
+  startBtn.innerHTML = '<span class="analyzing-spinner"></span> Iniciando...';
+  state.apiKey = setupApiKey.value.trim();
+  state.userProfile = setupProfile.value;
+  state.sessionGoal = setupGoal.value.trim();
+  state.intervalSeconds = parseInt(setupInterval.value);
+  state.alertThreshold = setupThreshold.value;
+  state.analysisMode = document.querySelector('input[name="analysis-mode"]:checked').value;
+  state.alertSound = $('#alert-sound').value;
+  state.currentSensitivityIndex = sensitivityLevels.findIndex(s => s.threshold === state.alertThreshold);
+  if (state.currentSensitivityIndex < 0) state.currentSensitivityIndex = 1;
+
+  // Inject profession accent color
+  const profColor = professionColors[state.userProfile] || '#00B4D8';
+  document.documentElement.style.setProperty('--accent-profile', profColor);
+
+  const cameraOk = await initCamera();
+  if (!cameraOk) {
+    alert('No se pudo acceder a la cámara. La sesión requiere acceso a cámara para funcionar. Verifica los permisos del navegador.');
+    isStarting = false;
+    startBtn.disabled = false;
+    startBtn.innerHTML = '<i class="ti ti-player-play"></i> Iniciar sesión de monitoreo';
+    return;
+  }
+
+  state.screenEnabled = $('#enable-screen').checked;
+  if (state.screenEnabled) {
+    await initScreenCapture();
+  }
+  if (state.screenEnabled && !state.screenStream) {
+    $('#screen-status').className = 'pill pill-warning';
+    $('#screen-status').innerHTML = '<span class="pill-dot pill-dot-warning"></span> Pantalla no disponible';
+    $('#screen-status').style.display = 'inline-flex';
+  }
+
+  requestNotifPermission();
+  state.isRunning = true;
+  state.sessionStart = Date.now();
+  state.lastAnalysisTime = Date.now();
+  countdownValue = state.intervalSeconds;
+
+  // Initialize sensitivity pill
+  const sensLevel = sensitivityLevels[state.currentSensitivityIndex] || sensitivityLevels[1];
+  state.alertThreshold = sensLevel.threshold;
+  const sensPill = $('#sensitivity-pill');
+  sensPill.className = 'pill pill-muted';
+  if (sensLevel.threshold === 'maxima') sensPill.classList.add('pill-warning');
+  else if (sensLevel.threshold === 'permissive') sensPill.classList.add('pill-info');
+  $('#sensitivity-text').textContent = sensLevel.label;
+
+  // Initialize compact state
+  state.isCompact = false;
+  $('#main-grid').classList.remove('compact');
+  $('#compact-toggle').innerHTML = '<i class="ti ti-layout-sidebar-collapse"></i>';
+
+  // Initialize concentration chart
+  state.concentrationTimeline = [{ time: 0, value: 100 }];
+  initConcentrationChart();
+
+  $('#setup-screen').style.display = 'none';
+  $('#topbar').style.display = 'flex';
+  $('#dashboard-screen').classList.add('active');
+
+  $('#goal-text').textContent = state.sessionGoal;
+  updateAllUI();
+  updateCountdown();
+
+  // Start countdown updates
+  countdownTimer = setInterval(updateCountdown, 500);
+
+  // Start session timer
+  sessionTimer = setInterval(updateSessionTimer, 1000);
+
+  // Star analysis interval
+  analysisTimer = setInterval(runAnalysis, state.intervalSeconds * 1000);
+
+  // Run first analysis after 2 seconds (allows camera to stabilize)
+  setTimeout(() => runAnalysis(), 2000);
+}
+
+function endSession() {
+  state.isRunning = false;
+  if (analysisTimer) { clearInterval(analysisTimer); analysisTimer = null; }
+  if (countdownTimer) { clearInterval(countdownTimer); countdownTimer = null; }
+  if (sessionTimer) { clearInterval(sessionTimer); sessionTimer = null; }
+  stopCamera();
+  stopScreenCapture();
+  showSummary();
+}
+
+function showSummary() {
+  const elapsed = state.sessionStart ? Math.floor((Date.now() - state.sessionStart) / 1000) : 0;
+  const m = Math.floor(elapsed / 60);
+  const s = elapsed % 60;
+  $('#summary-analyses').textContent = state.analysisCount;
+  $('#summary-alerts').textContent = state.alertCount;
+  $('#summary-concentration').textContent = Math.round(state.avgConcentration) + '%';
+  $('#summary-duration').textContent = `${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`;
+  $('#summary-modal').classList.add('active');
+}
+
+function resetToSetup() {
+  state.apiKey = '';
+  state.userProfile = '';
+  state.sessionGoal = '';
+  state.intervalSeconds = 30;
+  state.alertThreshold = 'normal';
+  state.isRunning = false;
+  state.sessionStart = null;
+  state.analysisCount = 0;
+  state.alertCount = 0;
+  state.progress = 0;
+  state.currentFocusState = 'focused';
+  state.currentAlertLevel = 'safe';
+  state.avgConcentration = 100;
+  state.concentrationHistory = [];
+  state.feedEntries = [];
+  state.tips = [];
+  state.reminders = [];
+  state.appTimeTracking = {};
+  state.orthographicCount = 0;
+  state.currentApp = '';
+  state.currentPage = null;
+  state.concentrationTimeline = [];
+  state.lastAnalysisTime = 0;
+  state.screenEnabled = false;
+  state.screenStream = null;
+  state.screenVideo = null;
+  state.analysisMode = 'diagnostico';
+  state.alertSound = 'critical';
+  state.isCompact = false;
+  state.currentSensitivityIndex = 1;
+
+  document.documentElement.style.setProperty('--accent-profile', '#00B4D8');
+  if (concentrationChart) { concentrationChart.destroy(); concentrationChart = null; }
+
+  $('#summary-modal').classList.remove('active');
+  $('#topbar').style.display = 'none';
+  $('#dashboard-screen').classList.remove('active');
+  $('#setup-screen').style.display = 'flex';
+  $('#screen-status').style.display = 'none';
+  renderFeed();
+  $('#reminders-list').innerHTML = '<div class="tab-empty">Agrega recordatorios críticos de tu sesión</div>';
+  renderApps();
+  renderTips();
+  updateMetrics();
+  $('#session-time').textContent = '00:00:00';
+}
+
+// ===== EVENT BINDINGS =====
+startBtn.addEventListener('click', startSession);
+$('#end-session-btn').addEventListener('click', endSession);
+$('#new-session-btn').addEventListener('click', resetToSetup);
+
+// Sensitivity pill cycle
+$('#sensitivity-pill').addEventListener('click', cycleSensitivity);
+
+// Compact toggle
+$('#compact-toggle').addEventListener('click', () => {
+  state.isCompact = !state.isCompact;
+  const grid = $('#main-grid');
+  const btn = $('#compact-toggle');
+  if (state.isCompact) {
+    grid.classList.add('compact');
+    btn.innerHTML = '<i class="ti ti-layout-sidebar-expand"></i>';
+    btn.title = 'Expandir';
+  } else {
+    grid.classList.remove('compact');
+    btn.innerHTML = '<i class="ti ti-layout-sidebar-collapse"></i>';
+    btn.title = 'Compactar';
+  }
+});
+
+// Export JSON
+$('#export-json-btn').addEventListener('click', () => {
+  const elapsed = state.sessionStart ? Math.floor((Date.now() - state.sessionStart) / 1000) : 0;
+  const exportData = {
+    exportedAt: new Date().toISOString(),
+    userProfile: state.userProfile,
+    sessionGoal: state.sessionGoal,
+    analysisMode: state.analysisMode,
+    alertThreshold: state.alertThreshold,
+    intervalSeconds: state.intervalSeconds,
+    duration: elapsed,
+    analysesCount: state.analysisCount,
+    alertCount: state.alertCount,
+    averageConcentration: Math.round(state.avgConcentration),
+    progress: state.progress,
+    feed: state.feedEntries.map(e => ({ timestamp: e.timestamp, alertLevel: e.alertLevel, feedback: e.feedback, appDetected: e.appDetected })),
+    tips: state.tips.map(t => ({ category: t.category, text: t.text, timestamp: t.timestamp })),
+    reminders: state.reminders.map(r => ({ text: r.text, done: r.done })),
+    appTracking: state.appTimeTracking,
+    orthographicErrorsCount: state.orthographicCount,
+    currentApp: state.currentApp,
+    currentPage: state.currentPage,
+  };
+  const blob = new Blob([JSON.stringify(exportData, null, 2)], { type: 'application/json' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = `agente-visual-${new Date().toISOString().slice(0, 10)}.json`;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+});
+
+// Handle Gemini status when first analysis happens
+// (the topbar will update via updateTopbar which checks state.analysisCount)
+
+// Re-request notification permission when page gains focus
+document.addEventListener('visibilitychange', () => {
+  if (!document.hidden && 'Notification' in window && Notification.permission !== 'granted') {
+    Notification.requestPermission();
+  }
+});
+
+// ===== INIT =====
+validateSetup();
+</script>
+</body>
+</html>
